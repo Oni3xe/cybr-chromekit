@@ -556,7 +556,10 @@ fun HudTextField(
                             Modifier.drawBehind {
                                 val l = layout ?: return@drawBehind
                                 if (!focused || !blink.value || !shown.selection.collapsed) return@drawBehind
-                                val r = l.getCursorRect(shown.selection.start.coerceIn(0, shown.text.length))
+                                // The selection moves before onTextLayout. A stale layout throws from getCursorRect.
+                                val offset = cursorOffsetForLayout(shown.selection.start, shown.text, l.layoutInput.text.text)
+                                    ?: return@drawBehind
+                                val r = l.getCursorRect(offset)
                                 // Single-line fields scroll to keep the cursor in view: keep the block inside too.
                                 val x = r.left.coerceIn(0f, (size.width - blockW).coerceAtLeast(0f))
                                 drawRect(t.colors.cyan, Offset(x, r.top), Size(blockW, r.height))

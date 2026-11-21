@@ -11,3 +11,5 @@
   generated `Tokens.kt`.
 - `fonts/`: Rajdhani and JetBrains Mono with TrueType hinting removed (OFL 1.1).
 - `.github/workflows/cybrcore-check.yml`: reusable check workflow.
+- `HudTextField`: the block cursor skips a stale text layout instead of calling `getCursorRect`
+  with an offset that layout doesn't contain, which crashed on typing (same fix as opsync #19).
