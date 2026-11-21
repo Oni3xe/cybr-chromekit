@@ -22,7 +22,7 @@ Code is MIT (`LICENSE`); the fonts stay under the OFL. Rules for contributors: `
 ### 1. Add the submodule, pinned to a tag
 
 ```sh
-git submodule add https://github.com/Oni3xe/chromekit.git chromekit
+git submodule add https://github.com/Oni3xe/cybr-chromekit.git chromekit
 git -C chromekit checkout v1.0          # always a tag (or, before the first tag, a reviewed commit)
 git add .gitmodules chromekit
 ```
@@ -166,7 +166,7 @@ app ships the OFL texts in its APK (cybr-launcher's `assets/fonts/*/`), keep tho
 ```yaml
 jobs:
   cybrcore:
-    uses: Oni3xe/chromekit/.github/workflows/cybrcore-check.yml@<full commit SHA of the tag> # v1.0
+    uses: Oni3xe/cybr-chromekit/.github/workflows/cybrcore-check.yml@<full commit SHA of the tag> # v1.0
     permissions:
       contents: read
     # with:

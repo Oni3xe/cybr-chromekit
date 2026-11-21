@@ -2,7 +2,7 @@
 #
 #   jobs:
 #     cybrcore:
-#       uses: Oni3xe/chromekit/.github/workflows/cybrcore-check.yml@<tag commit SHA> # v1.0
+#       uses: Oni3xe/cybr-chromekit/.github/workflows/cybrcore-check.yml@<tag commit SHA> # v1.0
 #
 # It checks out the calling repo with its submodules, then runs chromekit's generator in --check
 # mode (the generated Tokens.kt and friends must match chromekit/tokens/tokens.json at the pinned
