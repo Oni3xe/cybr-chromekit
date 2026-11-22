@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI checks for the cybrcore UI standard (v1.1), for Compose and Views apps.
+"""CI checks for chromekit (v1.1), for Compose and Views apps.
 
 Run from the consuming repo's root (the directory holding chromekit.json):
 
@@ -164,7 +164,7 @@ def check_views(root: Path, c: dict, files: list) -> list:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="cybrcore UI standard checks")
+    ap = argparse.ArgumentParser(description="chromekit checks")
     ap.add_argument("--config", default="chromekit.json")
     ap.add_argument("--root", default=None)
     args = ap.parse_args()
