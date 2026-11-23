@@ -1,0 +1,50 @@
+# Reusable cybrcore check for apps that consume chromekit as a git submodule.
+#
+#   jobs:
+#     cybrcore:
+#       uses: Oni3xe/cybr-chromekit/.github/workflows/cybrcore-check.yml@<tag commit SHA> # v1.0
+#
+# It checks out the calling repo with its submodules, then runs chromekit's generator in --check
+# mode (the generated Tokens.kt and friends must match chromekit/tokens/tokens.json at the pinned
+# cybrcore.version) and the UI standard checker, both driven by the app's chromekit.json.
+name: cybrcore-check
+
+on:
+  workflow_call:
+    inputs:
+      kit-path:
+        description: Path of the chromekit checkout inside the calling repo
+        type: string
+        default: chromekit
+      config:
+        description: Path of the app's chromekit.json
+        type: string
+        default: chromekit.json
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: cybrcore tokens and standard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # The chromekit submodule must be readable by this job's token (see README "CI access").
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: cybrcore tokens in sync
+        env:
+          KIT: ${{ inputs.kit-path }}
+          CONFIG: ${{ inputs.config }}
+        run: python3 "$KIT/tools/gen_tokens.py" --config "$CONFIG" --check
+
+      - name: cybrcore standard checks
+        env:
+          KIT: ${{ inputs.kit-path }}
+          CONFIG: ${{ inputs.config }}
+        run: python3 "$KIT/tools/check_standard.py" --config "$CONFIG"

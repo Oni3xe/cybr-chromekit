@@ -1,0 +1,15 @@
+{
+  "tokens": {
+    "kotlin": "android/src/main/java/com/oni3xe/chromekit/Tokens.kt",
+    "package": "com.oni3xe.chromekit",
+    "colorType": "long"
+  },
+  "check": {
+    "profile": "compose",
+    "sources": ["android/src/main"],
+    "generated": ["android/src/main/java/com/oni3xe/chromekit/Tokens.kt"],
+    "hud": ["android/src/main/java/com/oni3xe/chromekit/Hud.kt"],
+    "materialRules": true,
+    "exceptions": []
+  }
+}
