@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.1
+
 - Internal identifiers now use the chromekit name: reusable workflow
   `.github/workflows/chromekit-check.yml` (job id `chromekit` in the kit's `ci.yml`),
   `chromekit.version`, checker/generator messages, and `ChromekitTokens` (a deprecated
@@ -9,7 +11,6 @@
   `cybrcore.version` stay as deprecated aliases so older caller paths and pin files keep
   working. `tokens/tokens.json` `"name"` is now `chromekit` and the pin path text points at
   `chromekit.version`; token values and `referenceScreen` are unchanged.
-  Tagging a v1.1 release is left to Chief of Staff after merge.
 
 ## v1.0
 
