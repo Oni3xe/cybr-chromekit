@@ -27,13 +27,13 @@ import com.oni3xe.chromekit.Tokens
 import com.oni3xe.chromekit.Tokens.Color as T
 
 /*
- * Chrome tokens: the cybrcore 1.1 colours (the generated Tokens), type scale, spacing and shapes.
+ * Chrome tokens: the chromekit 1.1 colours (the generated Tokens), type scale, spacing and shapes.
  * Layout code reads `CybrTheme.tokens`.
  */
 
 private fun c(argb: Long) = Color(argb)
 
-/** cybrcore colour tokens, named as in tokens.json. See UI-Standard-v1.1 "Roles". */
+/** chromekit colour tokens, named as in tokens.json. See UI-Standard-v1.1 "Roles". */
 @Immutable
 data class CybrColors(
     val bg: Color,
@@ -121,7 +121,7 @@ val JetBrainsMono = FontFamily(
 
 private fun w(weight: Int) = FontWeight(weight)
 
-val CybrcoreTokens = CybrTokens(
+val ChromekitTokens = CybrTokens(
     colors = CybrColors(
         bg = c(T.BG), surface1 = c(T.SURFACE_1), surface2 = c(T.SURFACE_2),
         scrim = c(T.SCRIM),
@@ -149,7 +149,10 @@ val CybrcoreTokens = CybrTokens(
     shapes = CybrShapes(default = RoundedCornerShape(Tokens.Shape.CORNER_RADIUS_DP.dp), block = RectangleShape, chamfer = ChamferShape()),
 )
 
-val LocalCybrTokens = staticCompositionLocalOf { CybrcoreTokens }
+@Deprecated("Renamed to ChromekitTokens", ReplaceWith("ChromekitTokens"))
+val CybrcoreTokens = ChromekitTokens
+
+val LocalCybrTokens = staticCompositionLocalOf { ChromekitTokens }
 
 object CybrTheme {
     val tokens: CybrTokens
@@ -158,7 +161,7 @@ object CybrTheme {
 
 /** Provides tokens and maps them onto Material 3 with every shape size set to the sharp default. */
 @Composable
-fun CybrTheme(tokens: CybrTokens = CybrcoreTokens, content: @Composable () -> Unit) {
+fun CybrTheme(tokens: CybrTokens = ChromekitTokens, content: @Composable () -> Unit) {
     val c = tokens.colors
     val scheme = darkColorScheme(
         primary = c.red, onPrimary = c.bg,

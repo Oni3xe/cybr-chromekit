@@ -95,7 +95,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.min
 
 /*
- * cybrcore 1.1 shared Compose components (UI-Standard-v1.1 "States", "Action bar and menu",
+ * chromekit 1.1 shared Compose components (UI-Standard-v1.1 "States", "Action bar and menu",
  * "Components"): the press modifier with its latch, HudButton, HudActionBar with the [ ... ] overflow,
  * the menu panel, HudHeader, HudTab, HudTextField, HudRule, HudProgress and the chamfer shape.
  * Every value comes from the generated Tokens. This is the only file allowed to use

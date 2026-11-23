@@ -1,12 +1,15 @@
-# Reusable cybrcore check for apps that consume chromekit as a git submodule.
+# Deprecated alias of chromekit-check.yml. Kept so callers that still use this path on a SHA
+# that includes this commit keep working. New CI should call chromekit-check.yml.
+# Reusable chromekit check for apps that consume chromekit as a git submodule.
 #
 #   jobs:
-#     cybrcore:
-#       uses: Oni3xe/cybr-chromekit/.github/workflows/cybrcore-check.yml@<tag commit SHA> # v1.0
+#     chromekit:
+#       uses: Oni3xe/cybr-chromekit/.github/workflows/chromekit-check.yml@<tag commit SHA> # pin to the tag SHA
 #
 # It checks out the calling repo with its submodules, then runs chromekit's generator in --check
 # mode (the generated Tokens.kt and friends must match chromekit/tokens/tokens.json at the pinned
-# cybrcore.version) and the UI standard checker, both driven by the app's chromekit.json.
+# chromekit.version, with a deprecated fallback to cybrcore.version) and the UI standard checker,
+# both driven by the app's chromekit.json.
 name: cybrcore-check
 
 on:
@@ -26,7 +29,7 @@ permissions:
 
 jobs:
   check:
-    name: cybrcore tokens and standard
+    name: chromekit tokens and standard
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,13 +40,13 @@ jobs:
           submodules: true
           persist-credentials: false
 
-      - name: cybrcore tokens in sync
+      - name: chromekit tokens in sync
         env:
           KIT: ${{ inputs.kit-path }}
           CONFIG: ${{ inputs.config }}
         run: python3 "$KIT/tools/gen_tokens.py" --config "$CONFIG" --check
 
-      - name: cybrcore standard checks
+      - name: chromekit standard checks
         env:
           KIT: ${{ inputs.kit-path }}
           CONFIG: ${{ inputs.config }}

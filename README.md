@@ -1,19 +1,18 @@
 # chromekit
 
-The shared **cybrcore** UI kit for Oni3xe's Android apps. *cybrcore* is the style (UI-Standard
-v1.1); *chromekit* is the kit that carries it: tokens, generator, standard checker, fonts, the
-Compose HUD components and a reusable CI check. Apps consume it as a **git submodule pinned to a
-tag**.
+The shared UI kit for Oni3xe's Android apps. It carries UI-Standard v1.1: tokens, generator,
+standard checker, fonts, the Compose HUD components and a reusable CI check. Apps consume it as a
+**git submodule pinned to a tag**.
 
 | Path | What |
 |---|---|
-| `tokens/tokens.json` | cybrcore 1.1.0 tokens, byte-identical to the design vault's `tokens.v1.json` |
-| `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `cybrcore_tokens.xml`) |
+| `tokens/tokens.json` | 1.1.0 tokens, byte-identical to the design vault's `tokens.v1.json` |
+| `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `chromekit_tokens.xml`) |
 | `tools/check_standard.py` | UI standard checker, `compose` and `views` profiles |
 | `fonts/` | Rajdhani and JetBrains Mono, hinting removed, SIL OFL 1.1 (see `fonts/README.md`) |
 | `android/` | the `:chromekit` Android library (Compose): `Hud.kt`, `theme/CybrTheme.kt`, generated `Tokens.kt`, fonts |
-| `.github/workflows/cybrcore-check.yml` | reusable workflow (`on: workflow_call`) running both tools |
-| `chromekit.json`, `cybrcore.version` | the kit's own config, so it checks itself like an app |
+| `.github/workflows/chromekit-check.yml` | reusable workflow (`on: workflow_call`) running both tools |
+| `chromekit.json`, `chromekit.version` | the kit's own config, so it checks itself like an app |
 
 Code is MIT (`LICENSE`); the fonts stay under the OFL. Rules for contributors: `AGENTS.md`.
 
@@ -31,28 +30,32 @@ Clones then need `git clone --recurse-submodules` or `git submodule update --ini
 new kit release: `git -C chromekit fetch --tags && git -C chromekit checkout vX.Y`, regenerate
 (step 3), commit the new pin. Never edit files inside `chromekit/` from an app repo.
 
-### 2. Pin the cybrcore version and describe the app in `chromekit.json`
+### 2. Pin the tokens version and describe the app in `chromekit.json`
 
-`cybrcore.version` (repo root) holds the cybrcore version the app is on, e.g. `1.1.0`; the generator
-refuses tokens of another version. `chromekit.json` (repo root) configures both tools:
+`chromekit.version` (repo root) holds the tokens version the app is on, e.g. `1.1.0`; the generator
+refuses tokens of another version. A deprecated fallback still reads `cybrcore.version` if the new
+file is missing. `chromekit.json` (repo root) configures both tools:
 
 ```json
 {
   "tokens": {
-    "kotlin": "app/src/main/java/com/oni3xe/example/cybrcore/Tokens.kt",
-    "package": "com.oni3xe.example.cybrcore",
+    "kotlin": "app/src/main/java/com/oni3xe/example/chromekit/Tokens.kt",
+    "package": "com.oni3xe.example.chromekit",
     "colorType": "long"
   },
   "check": {
     "profile": "compose",
     "sources": ["app/src/main"],
-    "generated": ["app/src/main/java/com/oni3xe/example/cybrcore/Tokens.kt"],
+    "generated": ["app/src/main/java/com/oni3xe/example/chromekit/Tokens.kt"],
     "hud": [],
     "materialRules": true,
     "exceptions": []
   }
 }
 ```
+
+An existing app can keep its current Kotlin package (many still use a `cybrcore` package) so
+`Tokens` imports do not change; only a new app needs the `chromekit` package in this example.
 
 - `tokens.colorType`: `"long"` (ARGB `Long`, Compose apps) or `"int"` (ARGB `Int`, Views apps).
 - `tokens.hex: true` adds `Tokens.Hex` (`"#RRGGBB"` strings); `tokens.xml: "<path>"` also writes
@@ -128,7 +131,7 @@ What the module provides:
   - `HudButton`, `HudTab`, `HudActionBar` with the `[ ... ]` menu (`HudMenuHost`, `HudMenuState`);
   - `HudHeader`, `hudScreenFrame`, `hudPanel`, `HudRule`, `HudTextField` (block cursor), `HudProgress`, `HudEmptyState`;
   - `ChamferShape`, `LocalReduceMotion` and `systemReduceMotion`.
-- `theme/CybrTheme.kt` (`com.oni3xe.chromekit.theme`): `CybrTheme`, `CybrTokens` and its colours, type, spacing and shapes, `Rajdhani`, `JetBrainsMono`.
+- `theme/CybrTheme.kt` (`com.oni3xe.chromekit.theme`): `CybrTheme`, `CybrTokens` and its colours, type, spacing and shapes, `ChromekitTokens` (deprecated alias: `CybrcoreTokens`), `Rajdhani`, `JetBrainsMono`.
 - `Tokens.kt` (`com.oni3xe.chromekit`): the kit's own generated tokens; apps keep theirs.
 - Fonts: `R.font.rajdhani_{regular,medium,semibold,bold}` and `R.font.jetbrains_mono_{regular,bold}`, merged into the app. Delete the app's own copies.
 
@@ -165,8 +168,8 @@ app ships the OFL texts in its APK (cybr-launcher's `assets/fonts/*/`), keep tho
 
 ```yaml
 jobs:
-  cybrcore:
-    uses: Oni3xe/cybr-chromekit/.github/workflows/cybrcore-check.yml@<full commit SHA of the tag> # v1.0
+  chromekit:
+    uses: Oni3xe/cybr-chromekit/.github/workflows/chromekit-check.yml@<full commit SHA of the tag> # pin to the tag SHA
     permissions:
       contents: read
     # with:
@@ -197,8 +200,8 @@ builds (cybr-launcher) also need a public submodule and `submodules: yes` in the
 
 ### Wiring a new app (kiroshi-droid, opsync)
 
-1. Add the submodule at the tag (step 1) and create `cybrcore.version` and `chromekit.json` (step 2).
-   For the Kotlin package, use the app's existing `cybrcore` package if it has one, so imports of
+1. Add the submodule at the tag (step 1) and create `chromekit.version` and `chromekit.json` (step 2).
+   For the Kotlin package, use the app's existing package if it has one, so imports of
    `Tokens` don't change.
 2. Run the generator and diff the result against the app's current tokens. The values must be
    identical; only the two header comment lines may differ.

@@ -65,7 +65,7 @@ C_BASE = [
 ]
 C_MATERIAL = [
     (re.compile(r"import androidx\.compose\.material3\.(\w*Button|Switch|Checkbox|\w*Card|\w*TextField|AlertDialog|TimePicker\w*|DatePicker\w*)\b"),
-     False, "no rounded Material widgets; use the cybrcore HUD components"),
+     False, "no rounded Material widgets; use the chromekit HUD components"),
     (re.compile(r"RoundedCornerShape\((?!\s*(0(\.dp)?|Tokens\.Shape\.CORNER_RADIUS_DP\.dp)\s*\))"), False, "never rounded corners (chamfer or square)"),
 ]
 # True: allowed only inside the "hud" files.
@@ -181,10 +181,10 @@ def main() -> int:
         print('check.profile must be "compose" or "views"')
         return 2
     if problems:
-        print("cybrcore standard check failed:")
+        print("chromekit standard check failed:")
         print("\n".join("  " + p for p in problems))
         return 1
-    print(f"cybrcore standard check passed ({len(files)} files)")
+    print(f"chromekit standard check passed ({len(files)} files)")
     return 0
 
 

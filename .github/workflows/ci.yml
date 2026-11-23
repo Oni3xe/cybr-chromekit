@@ -15,8 +15,8 @@ concurrency:
 
 jobs:
   # The kit checks itself with the same reusable workflow the apps call.
-  cybrcore:
-    uses: ./.github/workflows/cybrcore-check.yml
+  chromekit:
+    uses: ./.github/workflows/chromekit-check.yml
     with:
       kit-path: "."
 
