@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Rules for every agent (and human) working on chromekit, the shared cybrcore UI kit.
+Rules for every agent (and human) working on chromekit, the shared UI kit.
 
 ## Hard rules
 - **"Don't break stuff or remove features tho! Just make sure it's written smartly." (Oni3xe)**
@@ -14,10 +14,12 @@ Rules for every agent (and human) working on chromekit, the shared cybrcore UI k
 - Never commit secrets: no PATs, deploy keys, keystores, passwords, tokens or `local.properties`.
 - Pin every GitHub Action to a full commit SHA with a version comment.
 - No network code, telemetry or analytics in the kit; the module adds no Android permissions.
-- `tokens/tokens.json` is the approved cybrcore tokens file, copied unmodified from the design vault
-  (`UI-Standard-v1.1.md`, `tokens.v1.json`). Never hand-edit it; a new cybrcore version comes from
-  the design vault and is a version bump in every app's `cybrcore.version`.
-- Generated files (`Tokens.kt`, `cybrcore_tokens.xml`) are never edited by hand; change the
+- `tokens/tokens.json` is the approved tokens file, copied from the design vault
+  (`UI-Standard-v1.1.md`, `tokens.v1.json`). Never hand-edit token values or `referenceScreen`;
+  a new tokens version comes from the design vault and is a version bump in every app's
+  `chromekit.version` (deprecated fallback: `cybrcore.version`). The file's `"name"` is
+  `chromekit` (renamed from `cybrcore` with Oni3xe's go-ahead; values are otherwise unchanged).
+- Generated files (`Tokens.kt`, `chromekit_tokens.xml`) are never edited by hand; change the
   generator and regenerate.
 - The fonts stay under the SIL OFL 1.1 with their notices; the MIT licence covers the code only.
 - App-specific UI stays in the app. The kit holds only what is identical across apps.

@@ -1,6 +1,18 @@
 # Changelog
 
-## v1.0 (unreleased)
+## Unreleased
+
+- Internal identifiers now use the chromekit name: reusable workflow
+  `.github/workflows/chromekit-check.yml` (job id `chromekit` in the kit's `ci.yml`),
+  `chromekit.version`, checker/generator messages, and `ChromekitTokens` (a deprecated
+  `CybrcoreTokens` alias remains). `.github/workflows/cybrcore-check.yml` and
+  `cybrcore.version` stay as deprecated aliases so older caller paths and pin files keep
+  working. `tokens/tokens.json` `"name"` is now `chromekit` and the pin path text points at
+  `chromekit.version`; token values and `referenceScreen` are unchanged.
+  Tagging a v1.1 release is left to Chief of Staff after merge.
+
+## v1.0
+
 - cybrcore 1.1.0 tokens (`tokens/tokens.json`), unchanged from the design vault.
 - `tools/gen_tokens.py`: one generator for every app, configured by the app's `chromekit.json`
   (package, Long or Int colours, optional `Tokens.Hex`, optional `cybrcore_tokens.xml`, optional

@@ -1,4 +1,4 @@
-// chromekit: the shared cybrcore Compose HUD components, theme, generated tokens and bundled fonts.
+// chromekit: the shared Compose HUD components, theme, generated tokens and bundled fonts.
 // Built only inside a consuming app (see README "Compose apps"): plugin versions, repositories and
 // gradle.properties come from the app's root project.
 plugins {
