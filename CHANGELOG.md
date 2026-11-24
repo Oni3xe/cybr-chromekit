@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Theme system (Oni3xe/cybr-chromekit#4): 10 dark-only themes in `tokens/themes.json` (Red default,
+  identical to the 1.1 tokens; Purple, Orange, Blue, Pink, Green, Cyan, Amber, Monochrome, Mocha
+  low contrast). Palette values are a draft pending Oni3xe's review.
+- `gen_tokens.py` generates the kit's `theme/Themes.kt` from `themes.json` when `tokens.themes` is
+  set (only the kit's own `chromekit.json`); apps' generated files are byte-identical.
+- Runtime theme switching (`ChromekitTheme`, `ChromekitThemeState`, persisted in
+  `SharedPreferences`), the theme picker and a shared `ChromekitCustomizationScreen` with an
+  app-options slot (`ChromekitSection`, `ChromekitToggleRow`).
+- Launcher sync client: reads cybr-launcher's read-only theme provider, trusted only for package
+  `com.oni3xe.cybrlauncher` with a pinned signing-cert SHA-256. The pin is a placeholder for now,
+  so sync fails closed (local theme). Manifest adds a `<queries>` entry only; no permissions.
+- `CybrColors.warning` (defaults to the Red theme's red, so existing code is unchanged).
+- `tools/render_palette_preview.py`: palette preview PNG and Markdown table for review rounds.
+
 ## v1.1
 
 - Internal identifiers now use the chromekit name: reusable workflow

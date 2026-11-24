@@ -1,0 +1,161 @@
+{
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' is the default and must override nothing, so it stays identical to tokens.json. In other themes the red.* keys are the primary accent (commands, frames) and cyan.* the secondary accent (selected, readouts). 'warning' defaults to the Red theme's red; 'error', 'green', 'gold' and 'scrim' stay fixed unless a theme overrides them.",
+  "version": 1,
+  "default": "red",
+  "themes": [
+    {
+      "id": "red",
+      "label": "Red",
+      "colors": {}
+    },
+    {
+      "id": "purple",
+      "label": "Purple",
+      "colors": {
+        "red.bright": "#C9A6FF",
+        "red": "#B07CFF",
+        "red.dim": "#7B57B2",
+        "red.deep": "#281C3A",
+        "cyan.bright": "#A3E8CB",
+        "cyan": "#66D9A8",
+        "cyan.dim": "#428D6D",
+        "cyan.deep": "#163025",
+        "surface.1": "#09060D",
+        "surface.2": "#120C1A"
+      }
+    },
+    {
+      "id": "orange",
+      "label": "Orange",
+      "colors": {
+        "red.bright": "#FFAF7B",
+        "red": "#FF8A3D",
+        "red.dim": "#B2612B",
+        "red.deep": "#3A1F0E",
+        "cyan.bright": "#9DDEFF",
+        "cyan": "#5CC8FF",
+        "cyan.dim": "#3C82A6",
+        "cyan.deep": "#142C38",
+        "surface.1": "#0D0703",
+        "surface.2": "#1A0E06"
+      }
+    },
+    {
+      "id": "blue",
+      "label": "Blue",
+      "colors": {
+        "red.bright": "#86C0FF",
+        "red": "#4DA3FF",
+        "red.dim": "#3672B2",
+        "red.deep": "#11253A",
+        "cyan.bright": "#F7CA9C",
+        "cyan": "#F2A65A",
+        "cyan.dim": "#9D6C3A",
+        "cyan.deep": "#352514",
+        "surface.1": "#04080D",
+        "surface.2": "#08101A"
+      }
+    },
+    {
+      "id": "pink",
+      "label": "Pink",
+      "colors": {
+        "red.bright": "#FF92CF",
+        "red": "#FF5FB8",
+        "red.dim": "#B24281",
+        "red.deep": "#3A162A",
+        "cyan.bright": "#A3E8DC",
+        "cyan": "#66D9C4",
+        "cyan.dim": "#428D7F",
+        "cyan.deep": "#16302B",
+        "surface.1": "#0D0509",
+        "surface.2": "#1A0A12"
+      }
+    },
+    {
+      "id": "green",
+      "label": "Green",
+      "colors": {
+        "red.bright": "#8DECAF",
+        "red": "#57E389",
+        "red.dim": "#3D9F60",
+        "red.deep": "#14341F",
+        "cyan.bright": "#DDBEFF",
+        "cyan": "#C792FF",
+        "cyan.dim": "#815FA6",
+        "cyan.deep": "#2C2038",
+        "surface.1": "#040B07",
+        "surface.2": "#09170E"
+      }
+    },
+    {
+      "id": "cyan",
+      "label": "Cyan",
+      "colors": {
+        "red.bright": "#74E3EE",
+        "red": "#33D6E6",
+        "red.dim": "#2496A1",
+        "red.deep": "#0C3134",
+        "cyan.bright": "#FFAFBC",
+        "cyan": "#FF7A90",
+        "cyan.dim": "#A64F5E",
+        "cyan.deep": "#381B20",
+        "surface.1": "#030B0C",
+        "surface.2": "#051517"
+      }
+    },
+    {
+      "id": "amber",
+      "label": "Amber",
+      "colors": {
+        "red.bright": "#FFCF74",
+        "red": "#FFB833",
+        "red.dim": "#B28124",
+        "red.deep": "#3A2A0C",
+        "cyan.bright": "#A9CBFF",
+        "cyan": "#6FA8FF",
+        "cyan.dim": "#486DA6",
+        "cyan.deep": "#182538",
+        "surface.1": "#0D0903",
+        "surface.2": "#1A1205"
+      }
+    },
+    {
+      "id": "monochrome",
+      "label": "Monochrome",
+      "colors": {
+        "red.bright": "#DADADA",
+        "red": "#C8C8C8",
+        "red.dim": "#8C8C8C",
+        "red.deep": "#2D2D2D",
+        "cyan.bright": "#B9B9B9",
+        "cyan": "#8A8A8A",
+        "cyan.dim": "#5A5A5A",
+        "cyan.deep": "#1E1E1E",
+        "surface.1": "#0A0A0A",
+        "surface.2": "#141414"
+      }
+    },
+    {
+      "id": "mocha",
+      "label": "Mocha",
+      "lowContrast": true,
+      "colors": {
+        "red.bright": "#D3B398",
+        "red": "#C8A07E",
+        "red.dim": "#90735B",
+        "red.deep": "#342A21",
+        "cyan.bright": "#BCD1CB",
+        "cyan": "#8FB3A8",
+        "cyan.dim": "#5D746D",
+        "cyan.deep": "#1F2725",
+        "bg": "#0E0B09",
+        "surface.1": "#17120F",
+        "surface.2": "#211A16",
+        "text": "#A89F96",
+        "text.muted": "#857C74",
+        "disabled": "#4F4944"
+      }
+    }
+  ]
+}

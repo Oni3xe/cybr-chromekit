@@ -67,6 +67,12 @@ data class CybrColors(
     val gold: Color,
     /** Errors only, always with `!!`. */
     val error: Color,
+    /**
+     * Warnings (`!` prefix or CAPS). Stays the Red theme's red in every theme unless a theme sets its
+     * own; in the Red theme it equals [red]. In other themes `red*` is the primary accent and `cyan*`
+     * the secondary accent (see tokens/themes.json).
+     */
+    val warning: Color = Color(Tokens.Role.WARNING),
 )
 
 @Immutable

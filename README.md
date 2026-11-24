@@ -7,7 +7,9 @@ standard checker, fonts, the Compose HUD components and a reusable CI check. App
 | Path | What |
 |---|---|
 | `tokens/tokens.json` | 1.1.0 tokens, byte-identical to the design vault's `tokens.v1.json` |
-| `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `chromekit_tokens.xml`) |
+| `tokens/themes.json` | the 10 theme palettes (kit-owned; overrides on top of `tokens.json`) |
+| `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `chromekit_tokens.xml`); the kit's `theme/Themes.kt` |
+| `tools/render_palette_preview.py` | renders the theme palettes to a preview PNG and a Markdown table (Pillow, no build) |
 | `tools/check_standard.py` | UI standard checker, `compose` and `views` profiles |
 | `fonts/` | Rajdhani and JetBrains Mono, hinting removed, SIL OFL 1.1 (see `fonts/README.md`) |
 | `android/` | the `:chromekit` Android library (Compose): `Hud.kt`, `theme/CybrTheme.kt`, generated `Tokens.kt`, fonts |
@@ -133,6 +135,9 @@ What the module provides:
   - `ChamferShape`, `LocalReduceMotion` and `systemReduceMotion`.
 - `theme/CybrTheme.kt` (`com.oni3xe.chromekit.theme`): `CybrTheme`, `CybrTokens` and its colours, type, spacing and shapes, `ChromekitTokens` (deprecated alias: `CybrcoreTokens`), `Rajdhani`, `JetBrainsMono`.
 - `Tokens.kt` (`com.oni3xe.chromekit`): the kit's own generated tokens; apps keep theirs.
+- Themes (`com.oni3xe.chromekit.theme`, see "Themes" below): `ChromekitThemes`, `ChromekitTheme`,
+  `ChromekitThemeState`, `ChromekitCustomizationScreen`, `ChromekitThemePicker`, `ChromekitSection`,
+  `ChromekitToggleRow`, and the launcher sync client (`LauncherThemeContract`, `LauncherThemeClient`).
 - Fonts: `R.font.rajdhani_{regular,medium,semibold,bold}` and `R.font.jetbrains_mono_{regular,bold}`, merged into the app. Delete the app's own copies.
 
 **App-specific bits stay in the app**, for example:
@@ -217,6 +222,52 @@ builds (cybr-launcher) also need a public submodule and `submodules: yes` in the
    - generated `Tokens.kt` diff;
    - removed component code vs the kit;
    - font hashes.
+
+## Themes
+
+Ten dark-only themes, all with the Red UI's balance: Red (default, identical to `tokens.json`),
+Purple, Orange, Blue, Pink, Green, Cyan, Amber, Monochrome and Mocha (low contrast). They live in
+`tokens/themes.json`, one entry per theme overriding `tokens.json` colour keys: `red.*` is the
+primary accent (commands, frames, titles), `cyan.*` the secondary accent (selected, readouts),
+plus surfaces and, for Mocha, background and text. `error`, `warning` (the Red theme's red),
+`green`, `gold` and `scrim` stay fixed unless a theme overrides them. Type, spacing and shapes never
+change: sharp corners, never white (the generator refuses `#FFFFFF`).
+
+Edit a palette: change `tokens/themes.json`, run `python3 tools/gen_tokens.py` (writes
+`android/.../theme/Themes.kt`), then `python3 tools/render_palette_preview.py --png out.png --md out.md`
+to review it. The kit's CI fails if `Themes.kt` is out of date. Apps' `Tokens.kt` are unaffected.
+
+In an app (Compose):
+
+```kotlin
+setContent {
+    ChromekitTheme {            // instead of CybrTheme { ... }: runtime switching + launcher sync
+        // From the app's settings or menu:
+        ChromekitCustomizationScreen(onBack = { /* close */ }) {
+            // Extension point: the app's own options, e.g.
+            // ChromekitSection("Alarm") { ChromekitToggleRow("Gradual volume", on) { ... } }
+        }
+    }
+}
+```
+
+`ChromekitTheme` reads the persisted choice (`SharedPreferences` file `chromekit_theme`) and
+recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red).
+
+### Launcher theme sync
+
+- cybr-launcher exposes a read-only provider (`LauncherThemeContract`: authority
+  `com.oni3xe.cybrlauncher.chromekit.theme`, one row with `theme_id` and `shared`) and shows the
+  "Apply this theme to all cybr apps" checkbox (`ChromekitThemeState.shareToAllApps`).
+- Other apps read it on start and on change (ContentObserver). They trust it only if the
+  provider's package is `com.oni3xe.cybrlauncher` **and** its single current signing certificate's
+  SHA-256 equals `LAUNCHER_CERT_SHA256` (`theme/LauncherThemeSync.kt`). Otherwise, or with sync
+  off, they use their local theme. The picker shows "Following launcher" with a "Use local"
+  break-away while the shared theme is active.
+- `LAUNCHER_CERT_SHA256` is currently `LAUNCHER_CERT_SHA256_PLACEHOLDER`: until Oni3xe pins the
+  launcher's release certificate hash there, sync **fails closed** (no provider is even queried).
+- Release signing stays per app. The kit's manifest adds only a `<queries>` entry for the
+  launcher's package (Android 11+ package visibility). No permissions, no INTERNET, no telemetry.
 
 ## The kit's own CI
 
