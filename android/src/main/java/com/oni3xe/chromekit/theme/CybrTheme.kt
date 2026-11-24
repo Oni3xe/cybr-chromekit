@@ -73,6 +73,8 @@ data class CybrColors(
      * the secondary accent (see tokens/themes.json).
      */
     val warning: Color = Color(Tokens.Role.WARNING),
+    /** The special purple accent: the one themed colour next to the fixed alert colours. Red: the error magenta. */
+    val accent: Color = Color(Tokens.Color.ERROR),
 )
 
 @Immutable
@@ -112,7 +114,14 @@ data class CybrShapes(
 )
 
 @Immutable
-data class CybrTokens(val colors: CybrColors, val type: CybrType, val spacing: CybrSpacing, val shapes: CybrShapes)
+data class CybrTokens(
+    val colors: CybrColors,
+    val type: CybrType,
+    val spacing: CybrSpacing,
+    val shapes: CybrShapes,
+    /** Non-null when the glass variant is on: translucent surfaces, light hairlines, glow, background blur. */
+    val glass: GlassStyle? = null,
+)
 
 val Rajdhani = FontFamily(
     Font(R.font.rajdhani_regular, FontWeight.Normal),

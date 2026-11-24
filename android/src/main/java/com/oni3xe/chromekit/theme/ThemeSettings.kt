@@ -27,7 +27,8 @@ class SharedPreferencesThemePrefs(private val prefs: SharedPreferences) : ThemeP
 /**
  * Persisted theme choices. [localThemeId] is this app's own theme; [followLauncher] (default on)
  * uses the trusted launcher's shared theme when there is one; [shareToAllApps] (default off) is the
- * launcher's "Apply this theme to all cybr apps" checkbox. Unknown stored ids read as the default.
+ * launcher's "Apply this theme to all cybr apps" checkbox; [glass] (default off) layers the glass
+ * variant on whichever theme is active (local to each app). Unknown stored ids read as the default.
  */
 class ThemeSettings(private val prefs: ThemePrefs) {
     var localThemeId: String
@@ -38,6 +39,10 @@ class ThemeSettings(private val prefs: ThemePrefs) {
         get() = prefs.getBoolean(KEY_FOLLOW, true)
         set(value) = prefs.put(KEY_FOLLOW, value)
 
+    var glass: Boolean
+        get() = prefs.getBoolean(KEY_GLASS, ChromekitThemes.GLASS_DEFAULT)
+        set(value) = prefs.put(KEY_GLASS, value)
+
     var shareToAllApps: Boolean
         get() = prefs.getBoolean(KEY_SHARE, false)
         set(value) = prefs.put(KEY_SHARE, value)
@@ -46,6 +51,7 @@ class ThemeSettings(private val prefs: ThemePrefs) {
         const val KEY_THEME = "theme_id"
         const val KEY_FOLLOW = "follow_launcher"
         const val KEY_SHARE = "share_to_all_apps"
+        const val KEY_GLASS = "glass"
     }
 }
 

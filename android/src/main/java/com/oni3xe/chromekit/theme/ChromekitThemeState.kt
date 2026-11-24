@@ -29,6 +29,7 @@ class ChromekitThemeState internal constructor(
     var localThemeId by mutableStateOf(settings.localThemeId); private set
     var followLauncher by mutableStateOf(settings.followLauncher); private set
     var shareToAllApps by mutableStateOf(settings.shareToAllApps); private set
+    var glass by mutableStateOf(settings.glass); private set
 
     /** The trusted launcher's shared theme id, or null. */
     var sharedThemeId by mutableStateOf<String?>(null); private set
@@ -55,6 +56,15 @@ class ChromekitThemeState internal constructor(
         followLauncher = follow
         if (follow) refresh()
     }
+
+    /** Turns the glass variant on or off for this app (any theme). */
+    fun useGlass(on: Boolean) {
+        settings.glass = on
+        glass = on
+    }
+
+    /** The active token set, glass applied when on. */
+    val tokens: CybrTokens get() = active.tokens(glass)
 
     /** Launcher only: the "Apply this theme to all cybr apps" checkbox, read by its provider. */
     fun shareWithAllApps(share: Boolean) {
@@ -130,5 +140,5 @@ fun ChromekitTheme(state: ChromekitThemeState = rememberChromekitThemeState(), c
         state.start(context)
         onDispose { state.stop(context) }
     }
-    CybrTheme(tokens = state.active.tokens, content = content)
+    CybrTheme(tokens = state.tokens, content = content)
 }

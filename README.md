@@ -6,10 +6,10 @@ standard checker, fonts, the Compose HUD components and a reusable CI check. App
 
 | Path | What |
 |---|---|
-| `tokens/tokens.json` | 1.1.0 tokens, byte-identical to the design vault's `tokens.v1.json` |
-| `tokens/themes.json` | the 10 theme palettes (kit-owned; overrides on top of `tokens.json`) |
+| `tokens/tokens.json` | 1.2.0 tokens: the design vault's `tokens.v1.json` values, version bumped for the theme system (no vault doc yet) |
+| `tokens/themes.json` | the 11 theme palettes and the glass variant (kit-owned; overrides on top of `tokens.json`) |
 | `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `chromekit_tokens.xml`); the kit's `theme/Themes.kt` |
-| `tools/render_palette_preview.py` | renders the theme palettes to a preview PNG and a Markdown table (Pillow, no build) |
+| `tools/render_palette_preview.py` | renders regular and glass preview PNGs and a Markdown table of the palettes (Pillow, no build) |
 | `tools/check_standard.py` | UI standard checker, `compose` and `views` profiles |
 | `fonts/` | Rajdhani and JetBrains Mono, hinting removed, SIL OFL 1.1 (see `fonts/README.md`) |
 | `android/` | the `:chromekit` Android library (Compose): `Hud.kt`, `theme/CybrTheme.kt`, generated `Tokens.kt`, fonts |
@@ -225,17 +225,39 @@ builds (cybr-launcher) also need a public submodule and `submodules: yes` in the
 
 ## Themes
 
-Ten dark-only themes, all with the Red UI's balance: Red (default, identical to `tokens.json`),
-Purple, Orange, Blue, Pink, Green, Cyan, Amber, Monochrome and Mocha (low contrast). They live in
-`tokens/themes.json`, one entry per theme overriding `tokens.json` colour keys: `red.*` is the
-primary accent (commands, frames, titles), `cyan.*` the secondary accent (selected, readouts),
-plus surfaces and, for Mocha, background and text. `error`, `warning` (the Red theme's red),
-`green`, `gold` and `scrim` stay fixed unless a theme overrides them. Type, spacing and shapes never
-change: sharp corners, never white (the generator refuses `#FFFFFF`).
+Eleven dark-only themes, all with the Red UI's balance: Red (default, identical to `tokens.json`),
+Purple, Orange, Blue, Pink, Green, Cyan, Amber, Monochrome, Mocha (low contrast) and Noir (muted
+deep red with a cool teal-grey). They live in `tokens/themes.json`, one entry per theme overriding
+`tokens.json` colour keys: `red.*` is the primary accent (commands, frames, titles, clock),
+`cyan.*` the secondary accent (selected, readouts, labels), plus surfaces and, for Mocha and Noir,
+background and text. `accent` is the special purple accent and the one themed colour next to the
+alerts (Red keeps the error magenta). The alert and status colours `error`, `warning` (the Red
+theme's red), `green` and `gold` are listed under `"fixed"` and the generator refuses a theme that
+overrides them. Type, spacing and shapes never change: sharp corners, never white (the generator
+refuses `#FFFFFF`).
+
+**Glass variant**, off by default, layered on any theme (not a copy of each theme). `themes.json`
+`"glass"` holds the defaults, and a theme may override any of them under its own `"glass"`:
+
+| key | default | meaning |
+|---|---|---|
+| `enabled` | `false` | default for the user's glass toggle |
+| `surfaceAlpha` | `0.55` | opacity of `surface.1`, `surface.2` and `scrim` (frosted panels) |
+| `borderAlpha` | `0.22` | panel hairline: the theme's `text` colour at this alpha |
+| `blurRadiusDp` | `12` | background blur, API 31+ (`Modifier.blur`/RenderEffect); none below, panels stay translucent |
+| `glowAlpha` | `0.30` | soft primary-accent glow on panels and key elements (Noir: `0.45`) |
+| `glowRadiusDp` | `10` | glow reach, drawn as strokes, never `shadow()` |
+
+With glass on, `CybrTheme.tokens.glass` is non-null, the surfaces are translucent, `hudPanel()`
+draws the light hairline and glow, and the app blurs its own background layer with
+`Modifier.chromekitGlassBackground(tokens)`; `Modifier.chromekitGlassGlow(tokens)` adds the glow to a
+key element (clock, active button). No new dependency.
 
 Edit a palette: change `tokens/themes.json`, run `python3 tools/gen_tokens.py` (writes
-`android/.../theme/Themes.kt`), then `python3 tools/render_palette_preview.py --png out.png --md out.md`
-to review it. The kit's CI fails if `Themes.kt` is out of date. Apps' `Tokens.kt` are unaffected.
+`android/.../theme/Themes.kt`), then
+`python3 tools/render_palette_preview.py --out DIR --tag SHA` to write `regular-SHA.png`,
+`glass-SHA.png` (over a painted fog) and `themes-SHA.md` for review. The kit's CI fails if
+`Themes.kt` is out of date.
 
 In an app (Compose):
 
@@ -251,6 +273,7 @@ setContent {
 }
 ```
 
+The Customization screen also has a "Glass panels" toggle (off by default).
 `ChromekitTheme` reads the persisted choice (`SharedPreferences` file `chromekit_theme`) and
 recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red).
 

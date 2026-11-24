@@ -2,19 +2,30 @@
 
 ## Unreleased
 
-- Theme system (Oni3xe/cybr-chromekit#4): 10 dark-only themes in `tokens/themes.json` (Red default,
-  identical to the 1.1 tokens; Purple, Orange, Blue, Pink, Green, Cyan, Amber, Monochrome, Mocha
-  low contrast). Palette values are a draft pending Oni3xe's review.
+## v1.2.0 (pending Oni3xe's palette approval; not tagged)
+
+- Tokens version 1.2.0 (`tokens.json`, `chromekit.version`, deprecated `cybrcore.version`); token
+  values unchanged. No design-vault doc yet. Apps regenerate their `Tokens.kt` when they bump.
+- Theme system (Oni3xe/cybr-chromekit#4): 11 dark-only themes in `tokens/themes.json` (Red default,
+  identical to the tokens; Purple, Orange, Blue, Pink, Green, Cyan, Amber, Monochrome with a faint
+  cool secondary, Mocha low contrast, Noir deep red and teal-grey). Palette values are a draft.
+- Alert and status colours (`error`, `warning`, `green`, `gold`) are fixed in every theme and the
+  generator refuses overrides; `accent` (the special purple accent, `CybrColors.accent`) is themed.
+- Glass variant, off by default, layered on any theme: `"glass"` tokens in `themes.json`
+  (surface alpha, border alpha, blur radius, glow), generated into `GlassStyle`; translucent
+  surfaces, light hairline and glow in `hudPanel()`; background blur on API 31+ via
+  `Modifier.blur` (no new dependency), translucent only below. Toggle on the Customization screen.
 - `gen_tokens.py` generates the kit's `theme/Themes.kt` from `themes.json` when `tokens.themes` is
-  set (only the kit's own `chromekit.json`); apps' generated files are byte-identical.
+  set (only the kit's own `chromekit.json`); apps' generated files only change by the version.
 - Runtime theme switching (`ChromekitTheme`, `ChromekitThemeState`, persisted in
   `SharedPreferences`), the theme picker and a shared `ChromekitCustomizationScreen` with an
   app-options slot (`ChromekitSection`, `ChromekitToggleRow`).
 - Launcher sync client: reads cybr-launcher's read-only theme provider, trusted only for package
   `com.oni3xe.cybrlauncher` with a pinned signing-cert SHA-256. The pin is a placeholder for now,
   so sync fails closed (local theme). Manifest adds a `<queries>` entry only; no permissions.
-- `CybrColors.warning` (defaults to the Red theme's red, so existing code is unchanged).
-- `tools/render_palette_preview.py`: palette preview PNG and Markdown table for review rounds.
+- `CybrColors.warning` and `CybrColors.accent`, `CybrTokens.glass` (all defaulted, so existing code
+  is unchanged).
+- `tools/render_palette_preview.py`: regular and glass preview PNGs (2x) and a Markdown table.
 
 ## v1.1
 

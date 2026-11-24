@@ -1,7 +1,22 @@
 {
-  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' is the default and must override nothing, so it stays identical to tokens.json. In other themes the red.* keys are the primary accent (commands, frames) and cyan.* the secondary accent (selected, readouts). 'warning' defaults to the Red theme's red; 'error', 'green', 'gold' and 'scrim' stay fixed unless a theme overrides them.",
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' is the default and must override nothing, so it stays identical to tokens.json. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'accent' is the special purple accent, the only themed status-adjacent colour (defaults to the error magenta). The alert and status colours (error, warning, green, gold) are fixed: the generator refuses theme overrides. 'glass' holds the glass-variant defaults (glass is off unless the user turns it on); a theme may override any glass value.",
   "version": 1,
   "default": "red",
+  "fixed": [
+    "error",
+    "warning",
+    "green",
+    "gold"
+  ],
+  "glass": {
+    "enabled": false,
+    "surfaceAlpha": 0.55,
+    "borderAlpha": 0.22,
+    "blurRadiusDp": 12,
+    "glowAlpha": 0.3,
+    "glowRadiusDp": 10,
+    "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. border: the theme's text colour at borderAlpha (subtle light hairline). blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha, drawn as strokes out to glowRadiusDp."
+  },
   "themes": [
     {
       "id": "red",
@@ -21,7 +36,8 @@
         "cyan.dim": "#428D6D",
         "cyan.deep": "#163025",
         "surface.1": "#09060D",
-        "surface.2": "#120C1A"
+        "surface.2": "#120C1A",
+        "accent": "#FF6BE0"
       }
     },
     {
@@ -37,7 +53,8 @@
         "cyan.dim": "#3C82A6",
         "cyan.deep": "#142C38",
         "surface.1": "#0D0703",
-        "surface.2": "#1A0E06"
+        "surface.2": "#1A0E06",
+        "accent": "#C77DFF"
       }
     },
     {
@@ -53,7 +70,8 @@
         "cyan.dim": "#9D6C3A",
         "cyan.deep": "#352514",
         "surface.1": "#04080D",
-        "surface.2": "#08101A"
+        "surface.2": "#08101A",
+        "accent": "#B98CFF"
       }
     },
     {
@@ -69,7 +87,8 @@
         "cyan.dim": "#428D7F",
         "cyan.deep": "#16302B",
         "surface.1": "#0D0509",
-        "surface.2": "#1A0A12"
+        "surface.2": "#1A0A12",
+        "accent": "#B57BFF"
       }
     },
     {
@@ -85,7 +104,8 @@
         "cyan.dim": "#815FA6",
         "cyan.deep": "#2C2038",
         "surface.1": "#040B07",
-        "surface.2": "#09170E"
+        "surface.2": "#09170E",
+        "accent": "#E07BFF"
       }
     },
     {
@@ -101,7 +121,8 @@
         "cyan.dim": "#A64F5E",
         "cyan.deep": "#381B20",
         "surface.1": "#030B0C",
-        "surface.2": "#051517"
+        "surface.2": "#051517",
+        "accent": "#C08CFF"
       }
     },
     {
@@ -117,7 +138,8 @@
         "cyan.dim": "#486DA6",
         "cyan.deep": "#182538",
         "surface.1": "#0D0903",
-        "surface.2": "#1A1205"
+        "surface.2": "#1A1205",
+        "accent": "#D48CFF"
       }
     },
     {
@@ -128,12 +150,13 @@
         "red": "#C8C8C8",
         "red.dim": "#8C8C8C",
         "red.deep": "#2D2D2D",
-        "cyan.bright": "#B9B9B9",
-        "cyan": "#8A8A8A",
-        "cyan.dim": "#5A5A5A",
-        "cyan.deep": "#1E1E1E",
+        "cyan.bright": "#BBC1C5",
+        "cyan": "#8E979F",
+        "cyan.dim": "#5C6267",
+        "cyan.deep": "#1F2123",
         "surface.1": "#0A0A0A",
-        "surface.2": "#141414"
+        "surface.2": "#141414",
+        "accent": "#C2B6DE"
       }
     },
     {
@@ -154,7 +177,32 @@
         "surface.2": "#211A16",
         "text": "#A89F96",
         "text.muted": "#857C74",
-        "disabled": "#4F4944"
+        "disabled": "#4F4944",
+        "accent": "#B9A0C8"
+      }
+    },
+    {
+      "id": "noir",
+      "label": "Noir",
+      "colors": {
+        "bg": "#07090C",
+        "surface.1": "#0E141A",
+        "surface.2": "#151E25",
+        "red.bright": "#EE3B3E",
+        "red": "#C8383C",
+        "red.dim": "#84383A",
+        "red.deep": "#34131A",
+        "cyan.bright": "#A4E5E9",
+        "cyan": "#8DA5A7",
+        "cyan.dim": "#5E7779",
+        "cyan.deep": "#102A2B",
+        "text": "#B4BBC3",
+        "text.muted": "#7E8A92",
+        "disabled": "#4A535A",
+        "accent": "#A98BB8"
+      },
+      "glass": {
+        "glowAlpha": 0.45
       }
     }
   ]

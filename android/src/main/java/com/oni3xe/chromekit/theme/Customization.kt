@@ -57,6 +57,7 @@ fun ChromekitCustomizationScreen(
             ChromekitSection("Theme") {
                 ThemeSyncControls(state)
                 ChromekitThemePicker(state)
+                ChromekitToggleRow("Glass panels (blurred background on Android 12+)", state.glass) { state.useGlass(it) }
             }
             appOptions()
         }

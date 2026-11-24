@@ -484,10 +484,26 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
     }
 }
 
-/** Panel over other content: scrim fill, 1dp red.dim frame, 6dp top-start chamfer. */
+/**
+ * Panel over other content: scrim fill, 1dp red.dim frame, 6dp top-start chamfer. With glass on
+ * (`CybrTheme.tokens.glass`), the fill is translucent, the frame a light hairline and a soft
+ * primary-accent glow is drawn behind (strokes, never shadow()).
+ */
 fun Modifier.hudPanel(): Modifier = composed {
     val t = CybrTheme.tokens
-    clip(t.shapes.chamfer).background(t.colors.scrim).border(Px1, t.colors.redDim, t.shapes.chamfer)
+    val g = t.glass
+    if (g == null) clip(t.shapes.chamfer).background(t.colors.scrim).border(Px1, t.colors.redDim, t.shapes.chamfer)
+    else glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp).clip(t.shapes.chamfer).background(t.colors.scrim)
+        .border(Px1, t.colors.text.copy(alpha = g.borderAlpha), t.shapes.chamfer)
+}
+
+/** Soft glow behind an element: 3 strokes of [color] fading out to [radius]. No-op at alpha 0. */
+fun Modifier.glassGlow(color: Color, alpha: Float, radius: Dp): Modifier = if (alpha <= 0f || radius <= 0.dp) this else drawBehind {
+    val r = radius.toPx()
+    for (i in 1..3) {
+        val off = r * i / 3f
+        drawRect(color.copy(alpha = alpha / (i * 1.6f)), Offset(-off, -off), Size(size.width + 2 * off, size.height + 2 * off), style = Stroke(r / 3f))
+    }
 }
 
 /** 1dp line: red.deep divider by default (frames use red.dim). */

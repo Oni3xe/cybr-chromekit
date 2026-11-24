@@ -8,9 +8,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemeRegistryTest {
-    @Test fun tenThemesInPickerOrder() {
+    @Test fun elevenThemesInPickerOrder() {
         assertEquals(
-            listOf("red", "purple", "orange", "blue", "pink", "green", "cyan", "amber", "monochrome", "mocha"),
+            listOf("red", "purple", "orange", "blue", "pink", "green", "cyan", "amber", "monochrome", "mocha", "noir"),
             ChromekitThemes.all.map { it.id },
         )
     }
@@ -35,8 +35,31 @@ class ThemeRegistryTest {
             assertTrue("${th.id} bg is dark", c.bg.red < 0.1f && c.bg.green < 0.1f && c.bg.blue < 0.1f)
             assertEquals(th.id, ChromekitTokens.colors.error, c.error)
             assertEquals(th.id, ChromekitTokens.colors.warning, c.warning)
+            assertEquals(th.id, ChromekitTokens.colors.green, c.green)
+            assertEquals(th.id, ChromekitTokens.colors.gold, c.gold)
             assertEquals(th.id, ChromekitTokens.type, th.tokens.type)
             assertEquals(th.id, ChromekitTokens.shapes, th.tokens.shapes)
+        }
+    }
+
+    @Test fun accentIsThemedAndRedKeepsTheMagenta() {
+        assertEquals(ChromekitTokens.colors.error, ChromekitTokens.colors.accent)
+        val accents = ChromekitThemes.all.map { it.tokens.colors.accent }
+        assertEquals(accents.size, accents.toSet().size)
+    }
+
+    @Test fun glassIsOffByDefaultAndLayersOnAnyTheme() {
+        assertEquals(false, ChromekitThemes.GLASS_DEFAULT)
+        for (th in ChromekitThemes.all) {
+            assertSame(th.tokens, th.tokens(false))
+            assertEquals(null, th.tokens.glass)
+            val g = th.tokens(true)
+            assertEquals(th.glass, g.glass)
+            assertEquals(th.glass.surfaceAlpha, g.colors.surface1.alpha, 0.01f)
+            assertEquals(th.glass.surfaceAlpha, g.colors.scrim.alpha, 0.01f)
+            assertEquals(th.tokens.colors.red, g.colors.red)
+            assertEquals(th.tokens.shapes, g.shapes)
+            assertTrue(th.glass.blurRadiusDp > 0f && th.glass.borderAlpha in 0f..1f && th.glass.glowAlpha in 0f..1f)
         }
     }
 

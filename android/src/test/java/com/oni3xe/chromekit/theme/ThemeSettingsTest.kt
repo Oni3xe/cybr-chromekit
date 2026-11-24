@@ -19,15 +19,17 @@ class ThemeSettingsTest {
         assertEquals("red", s.localThemeId)
         assertTrue(s.followLauncher)
         assertFalse(s.shareToAllApps)
+        assertFalse(s.glass)
     }
 
     @Test fun persistsAcrossInstances() {
         val prefs = MapPrefs()
-        ThemeSettings(prefs).apply { localThemeId = "cyan"; followLauncher = false; shareToAllApps = true }
+        ThemeSettings(prefs).apply { localThemeId = "cyan"; followLauncher = false; shareToAllApps = true; glass = true }
         val s = ThemeSettings(prefs)
         assertEquals("cyan", s.localThemeId)
         assertFalse(s.followLauncher)
         assertTrue(s.shareToAllApps)
+        assertTrue(s.glass)
     }
 
     @Test fun unknownStoredIdReadsAsDefault() {

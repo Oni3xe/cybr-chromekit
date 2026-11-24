@@ -213,17 +213,26 @@ THEME_FIELDS = [("bg", "bg"), ("surface1", "surface.1"), ("surface2", "surface.2
                 ("redBright", "red.bright"), ("red", "red"), ("redDim", "red.dim"), ("redDeep", "red.deep"),
                 ("cyanBright", "cyan.bright"), ("cyan", "cyan"), ("cyanDim", "cyan.dim"), ("cyanDeep", "cyan.deep"),
                 ("text", "text"), ("textMuted", "text.muted"), ("disabled", "disabled"),
-                ("green", "green"), ("gold", "gold"), ("error", "error"), ("warning", "warning")]
+                ("green", "green"), ("gold", "gold"), ("error", "error"), ("warning", "warning"),
+                ("accent", "accent")]
+# GlassStyle fields: (themes.json key, Kotlin field, Kotlin type).
+GLASS_FIELDS = [("surfaceAlpha", "surfaceAlpha", "f"), ("borderAlpha", "borderAlpha", "f"),
+                ("blurRadiusDp", "blurRadiusDp", "f"), ("glowAlpha", "glowAlpha", "f"), ("glowRadiusDp", "glowRadiusDp", "f")]
 
 
 def resolve_themes(colors: dict, roles: dict) -> tuple:
     """Return (themes.json document, [(theme, {key: hex})]) with every theme fully resolved.
 
     A theme overrides tokens.json colour keys; anything it leaves out comes from tokens.json.
-    "warning" defaults to the tokens' warning role colour (the Red theme's red)."""
+    "warning" defaults to the tokens' warning role colour (the Red theme's red) and "accent" (the
+    special purple accent) to the error magenta. The keys in "fixed" (alert and status colours) can't
+    be overridden. Each theme also gets its resolved "glass" style under the key "_glass"."""
     doc = json.loads(THEMES.read_text())
     base = dict(colors)
     base["warning"] = colors[roles["warning"]]
+    base["accent"] = colors["error"]
+    fixed = set(doc.get("fixed", []))
+    glass = {k: v for k, v in doc.get("glass", {}).items() if not k.startswith("$")}
     seen, out = set(), []
     for th in doc["themes"]:
         tid = th["id"]
@@ -233,11 +242,19 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
         unknown = set(th.get("colors", {})) - set(base)
         if unknown:
             raise SystemExit(f"themes.json: theme {tid} sets unknown colour keys {sorted(unknown)}")
+        locked = fixed & set(th.get("colors", {}))
+        if locked:
+            raise SystemExit(f"themes.json: theme {tid} overrides fixed alert colours {sorted(locked)}")
         pal = {**base, **th.get("colors", {})}
         for key, v in pal.items():
             if argb(v)[2:] == "FFFFFF":
                 raise SystemExit(f"themes.json: theme {tid} {key} is white; chromekit never uses white")
-        out.append((th, pal))
+        g = {**glass, **th.get("glass", {})}
+        for key, _, _ in GLASS_FIELDS:
+            v = g.get(key)
+            if not isinstance(v, (int, float)) or v < 0 or (key.endswith("Alpha") and v > 1):
+                raise SystemExit(f"themes.json: theme {tid} glass {key} must be a number (alphas 0..1)")
+        out.append((th, {**pal, "_glass": g}))
     if doc.get("default") not in seen:
         raise SystemExit("themes.json: \"default\" must name a theme")
     first = doc["themes"][0]
@@ -254,13 +271,16 @@ def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin:
          f"package {pkg}", "",
          "/** Theme palettes as ARGB longs, in picker order. Edit tokens/themes.json, then regenerate. */",
          "internal object GeneratedThemes {",
-         f"    const val DEFAULT_ID = \"{doc['default']}\"", "",
+         f"    const val DEFAULT_ID = \"{doc['default']}\"",
+         f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}", "",
          "    val ALL: List<ThemePalette> = listOf("]
     for th, pal in themes:
         k.append(f"        ThemePalette(")
         k.append(f"            id = \"{th['id']}\", label = \"{th['label']}\", lowContrast = {str(bool(th.get('lowContrast'))).lower()},")
         for field, key in THEME_FIELDS:
             k.append(f"            {field} = 0x{argb(pal[key])}L,")
+        g = ", ".join(f"{field} = {num(pal['_glass'][key])}" for key, field, _ in GLASS_FIELDS)
+        k.append(f"            glass = GlassStyle({g}),")
         k.append("        ),")
     k += ["    )", "}"]
     return "\n".join(k) + "\n"
