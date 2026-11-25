@@ -72,8 +72,8 @@ class ThemeRegistryTest {
             assertEquals(th.shadow, both.shadow)
             assertTrue(th.shadow.alpha in 0.01f..1f && th.shadow.radiusDp > 0f)
             // Brightest at the border: the edge band is brighter than the outer fade and inside its radius.
-            assertTrue(th.shadow.edgeAlpha in th.shadow.alpha..1f)
-            assertTrue(th.shadow.edgeWidthDp > 0f && th.shadow.edgeWidthDp < th.shadow.radiusDp)
+            assertTrue(th.shadow.edgeAlpha in 0f..1f)
+            assertTrue(th.shadow.edgeWidthDp >= 0f && th.shadow.edgeWidthDp < th.shadow.radiusDp)
         }
     }
 
@@ -113,5 +113,14 @@ class ThemeRegistryTest {
 
     @Test fun onlyMochaIsLowContrast() {
         assertEquals(listOf("mocha"), ChromekitThemes.all.filter { it.lowContrast }.map { it.id })
+    }
+
+    @Test fun chopperIsNearBlack() {
+        val c = ChromekitThemes.byId("noir").tokens.colors
+        for (col in listOf(c.bg, c.surface1, c.surface2)) {
+            assertTrue(col.red < 0.05f && col.green < 0.07f && col.blue < 0.09f)
+        }
+        // Much darker than the original CHOPPER background (#07090C)
+        assertTrue((c.bg.red + c.bg.green + c.bg.blue) * 255f < (0x07 + 0x09 + 0x0C) / 2f)
     }
 }

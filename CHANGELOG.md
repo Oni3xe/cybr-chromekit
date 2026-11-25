@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Shadow, round 3 (Oni3xe): no separate bright edge band; the fade starts brighter right at the
+  border and tapers off a little wider. `themes.json` shadow: `alpha` 0.3 → 0.45, `radiusDp`
+  8 → 10, `edgeAlpha` 0.9 → 0, `edgeWidthDp` 1 → 0. Still bands of at most 1px, no steps.
+- CHOPPER (noir) is much darker: `bg` `#07090C` → `#020304`, `surface.1` `#0E141A` → `#06090C`,
+  `surface.2` `#151E25` → `#0B1014`. No other theme changes.
+
 - Shadow (Oni3xe's device test): smooth, narrower and subtler. `shadowGlow()` / `hudPanel()` draw
   bands of at most 1px with a continuous alpha (`shadowBands()`: edge alpha easing into the outer
   alpha, then a quadratic fade), instead of 6 visible steps: a thin, bright edge with a narrow
