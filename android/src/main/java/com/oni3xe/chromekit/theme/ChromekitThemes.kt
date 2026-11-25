@@ -38,11 +38,12 @@ data class GlassStyle(
 )
 
 /**
- * Shadow (tokens/themes.json "shadow"): a subtle neon glow radiating outward from each panel's edge
- * in the theme's primary colour, [alpha] fading out to [radiusDp]. Independent of glass.
+ * Shadow (tokens/themes.json "shadow"): a neon glow in the theme's primary colour, brightest at the
+ * panel border and fading outward. [edgeAlpha] / [edgeWidthDp]: the bright band hugging the edge;
+ * [alpha] / [radiusDp]: the outer fade from the band to 0. Independent of glass.
  */
 @Immutable
-data class ShadowStyle(val alpha: Float, val radiusDp: Float)
+data class ShadowStyle(val alpha: Float, val radiusDp: Float, val edgeAlpha: Float, val edgeWidthDp: Float)
 
 /**
  * A selectable chromekit theme. [tokens] is the solid token set (type, spacing, shapes unchanged);

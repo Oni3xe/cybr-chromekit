@@ -262,9 +262,11 @@ only token a theme may set to white; `gen_tokens.py` refuses white anywhere else
 | `glowAlpha` | `0.30` | soft primary-accent glow on panels and key elements (CHOPPER: `0.45`) |
 | `glowRadiusDp` | `10` | glow reach, drawn as strokes, never `shadow()` |
 
-**Shadow**, off by default and independent of glass: a subtle neon glow radiating outward from
-each panel's edge in the theme's primary colour (`hudPanel()`, drawn strokes, square). `themes.json`
-`"shadow"`: `enabled` `false`, `alpha` `0.28`, `radiusDp` `8` (per-theme overrides allowed);
+**Shadow**, off by default and independent of glass: a neon glow in the theme's primary colour,
+brightest in a band right at each panel's border and fading outward (`hudPanel()` /
+`shadowGlow()`, drawn strokes, square); with glass on, panels also get a 1dp primary frame.
+`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.45`, `radiusDp` `14`, `edgeAlpha` `0.9`,
+`edgeWidthDp` `2` (per-theme overrides allowed);
 `CybrTheme.tokens.shadow` is non-null when on.
 
 With glass on, `CybrTheme.tokens.glass` is non-null, the surfaces are translucent, `hudPanel()`

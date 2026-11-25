@@ -217,7 +217,7 @@ THEME_FIELDS = [("bg", "bg"), ("surface1", "surface.1"), ("surface2", "surface.2
 # The only colour key a theme may set to white: the error colour (Oni3xe's explicit exception).
 WHITE_OK = {"error"}
 # GlassStyle fields: (themes.json key, Kotlin field, Kotlin type).
-SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp")]
+SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp"), ("edgeAlpha", "edgeAlpha"), ("edgeWidthDp", "edgeWidthDp")]
 GLASS_FIELDS = [("surfaceAlpha", "surfaceAlpha", "f"), ("borderAlpha", "borderAlpha", "f"),
                 ("blurRadiusDp", "blurRadiusDp", "f"), ("glowAlpha", "glowAlpha", "f"), ("glowRadiusDp", "glowRadiusDp", "f")]
 
@@ -259,7 +259,7 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
         sh = {**shadow, **th.get("shadow", {})}
         for key, _ in SHADOW_FIELDS:
             v = sh.get(key)
-            if not isinstance(v, (int, float)) or v < 0 or (key == "alpha" and v > 1):
+            if not isinstance(v, (int, float)) or v < 0 or (key.lower().endswith("alpha") and v > 1):
                 raise SystemExit(f"themes.json: theme {tid} shadow {key} must be a number (alpha 0..1)")
         if not th.get("label") or not th.get("color"):
             raise SystemExit(f"themes.json: theme {tid} needs a code-name \"label\" and a \"color\"")

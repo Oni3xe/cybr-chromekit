@@ -18,9 +18,11 @@
   },
   "shadow": {
     "enabled": false,
-    "alpha": 0.28,
-    "radiusDp": 8,
-    "$comment": "Shadow: a subtle neon glow radiating outward from each panel's edge in the theme's primary colour (red), alpha fading to 0 at radiusDp. Independent of glass; drawn strokes, never shadow()."
+    "alpha": 0.45,
+    "radiusDp": 14,
+    "edgeAlpha": 0.9,
+    "edgeWidthDp": 2,
+    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). Drawn strokes, never shadow()."
   },
   "themes": [
     {
@@ -193,7 +195,7 @@
         "text": "#A89F96",
         "text.muted": "#857C74",
         "disabled": "#4F4944",
-        "error": "#C9A0E0"
+        "error": "#E2B3F7"
       }
     },
     {
@@ -215,7 +217,7 @@
         "text": "#B4BBC3",
         "text.muted": "#7E8A92",
         "disabled": "#4A535A",
-        "error": "#B48CFF"
+        "error": "#C9A2FF"
       },
       "glass": {
         "glowAlpha": 0.45

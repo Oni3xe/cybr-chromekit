@@ -95,16 +95,19 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool, sha
     c = {k: rgba(v) for k, v in p.items() if not k.startswith("_")}
     g = p["_glass"]
     x0, y0, x1, y1 = sc(ox, oy, ox + CARD_W, oy + CARD_H)
-    if shadow:  # Shadow: as hudPanel draws it, 3 strokes of the primary colour stepping outward, fading
+    if shadow:  # Shadow, as shadowGlow() draws it: outer fade from alpha to 0, then the bright edge band
         sh = p["_shadow"]
-        r = sh["radiusDp"] * S
+        e, r, steps = sh["edgeWidthDp"] * S, sh["radiusDp"] * S, 6
+        band = max(r - e, 0) / steps
         layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
         ld = ImageDraw.Draw(layer)
-        for i in (1, 2, 3):
-            off = r * i / 3
-            ld.rectangle((x0 - off, y0 - off, x1 + off, y1 + off), outline=c["red"][:3] + (round(255 * sh["alpha"] / (i * 1.6)),),
-                         width=max(1, round(r / 3)))
-        img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(S)))
+        for i in range(steps, 0, -1):
+            off = e + band * i
+            ld.rectangle((x0 - off, y0 - off, x1 + off, y1 + off), outline=c["red"][:3] + (round(255 * sh["alpha"] * (1 - (i - 1) / steps)),),
+                         width=max(1, round(band)))
+        layer = layer.filter(ImageFilter.GaussianBlur(S))
+        ImageDraw.Draw(layer).rectangle((x0 - e, y0 - e, x1 + e, y1 + e), outline=c["red"][:3] + (round(255 * sh["edgeAlpha"]),), width=max(1, round(e)))
+        img.alpha_composite(layer)
     if glass:
         region = img.crop((x0, y0, x1, y1)).filter(ImageFilter.GaussianBlur(g["blurRadiusDp"] * S / 2))
         img.paste(region, (x0, y0))
@@ -112,7 +115,7 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool, sha
         over = Image.new("RGBA", img.size, (0, 0, 0, 0))
         od = ImageDraw.Draw(over)
         od.polygon(chamfer(ox, oy, ox + CARD_W, oy + CARD_H, 10), fill=c["surface.1"][:3] + (round(255 * g["surfaceAlpha"]),),
-                   outline=c["text"][:3] + (round(255 * g["borderAlpha"]),), width=S)
+                   outline=c["red"] if shadow else c["text"][:3] + (round(255 * g["borderAlpha"]),), width=S)
         img.alpha_composite(over)
     else:
         d = ImageDraw.Draw(img, "RGBA")
@@ -222,16 +225,21 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", required=True, help="output directory")
     ap.add_argument("--tag", required=True, help="file name suffix, e.g. the short head SHA")
+    ap.add_argument("--only", choices=["all", "shadow", "plain"], default="all", help="which PNGs to write")
+    ap.add_argument("--no-md", action="store_true", help="skip the Markdown table")
     a = ap.parse_args()
     t = json.loads(TOKENS.read_text())
     _, themes = resolve_themes(t["color"], t["role"])
     out = Path(a.out)
     for glass in (False, True):
         for shadow in (False, True):
+            if a.only != "all" and shadow != (a.only == "shadow"):
+                continue
             name = ("glass" if glass else "regular") + ("-shadow" if shadow else "")
             render(themes, out / f"{name}-{a.tag}.png", glass=glass, shadow=shadow)
-    (out / f"themes-{a.tag}.md").write_text(markdown(themes, a.tag))
-    print(f"wrote {out / f'themes-{a.tag}.md'}")
+    if not a.no_md:
+        (out / f"themes-{a.tag}.md").write_text(markdown(themes, a.tag))
+        print(f"wrote {out / f'themes-{a.tag}.md'}")
 
 
 if __name__ == "__main__":

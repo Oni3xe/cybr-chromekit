@@ -18,9 +18,10 @@
   (surface alpha, border alpha, blur radius, glow), generated into `GlassStyle`; translucent
   surfaces, light hairline and glow in `hudPanel()`; background blur on API 31+ via
   `Modifier.blur` (no new dependency), translucent only below. Toggle on the Customization screen.
-- Shadow, off by default and independent of glass: a subtle primary-colour neon glow outward from
-  each panel edge (`"shadow"` tokens: alpha, radiusDp; generated into `ShadowStyle`,
-  `CybrTokens.shadow`). Toggle on the Customization screen.
+- Shadow, off by default and independent of glass: a primary-colour neon glow, brightest in a band
+  at the panel border and fading outward (`"shadow"` tokens: alpha, radiusDp, edgeAlpha,
+  edgeWidthDp; generated into `ShadowStyle`, `CybrTokens.shadow`). With glass on, Shadow also gives
+  panels a 1dp primary frame. Toggle on the Customization screen.
 - `gen_tokens.py` generates the kit's `theme/Themes.kt` from `themes.json` when `tokens.themes` is
   set (only the kit's own `chromekit.json`); apps' generated files only change by the version.
 - Runtime theme switching (`ChromekitTheme`, `ChromekitThemeState`, persisted in
