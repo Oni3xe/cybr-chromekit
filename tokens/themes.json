@@ -28,6 +28,19 @@
     "edgeWidthDp": 0,
     "$comment": "Shadow: a soft neon glow in the theme's primary colour, starting at alpha right at the panel border and fading smoothly outward to 0 at radiusDp (quadratic ease). No separate edge band: edgeAlpha/edgeWidthDp stay 0 (an app may set them for a bright edge that eases into alpha). Drawn as bands of at most 1px (shadowBands), so there are no visible steps. Independent of glass; Shadow off draws nothing at all. With Shadow on, panels get a 1dp primary frame. The glow follows the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
   },
+  "blurStyle": {
+    "default": "glass",
+    "glass": {
+      "saturation": 1.18,
+      "tone": 1.04,
+      "bloomThreshold": 0.68,
+      "bloomStrength": 0.32,
+      "edgeAlpha": 0.16,
+      "edgeWidthDp": 1.5,
+      "grainAlpha": 0.035
+    },
+    "$comment": "How glass panels' backdrop blur looks (only with glass on). 'plain': the blur alone, no grain. 'glass' (the default; unknown or missing values read as glass): the blur plus a saturation boost (saturation, 1 = none) and tone lift (tone, 1 = none), a soft bloom on bright areas (luminance above bloomThreshold, added at bloomStrength; API 33+ RuntimeShader only), a subtle light band along the panel edge (theme text colour at edgeAlpha over edgeWidthDp, fading from the top-start) and a fixed fine grain (grainAlpha). Below API 33 the bloom is dropped and the rest is drawn with a colour matrix and a grain tile (com.oni3xe.chromekit.views.GlassBlur)."
+  },
   "themes": [
     {
       "id": "red",

@@ -286,6 +286,26 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
 
 BG_TINT = 0.03
 
+BLUR_STYLES = ("plain", "glass")
+BLUR_GLASS_FIELDS = ("saturation", "tone", "bloomThreshold", "bloomStrength", "edgeAlpha", "edgeWidthDp", "grainAlpha")
+
+
+def blur_style_lines(doc: dict) -> list:
+    """themes.json "blurStyle": the default style and the glass style's numbers, as constants."""
+    b = doc.get("blurStyle", {})
+    default = b.get("default", "glass")
+    if default not in BLUR_STYLES:
+        raise SystemExit(f"themes.json: blurStyle.default must be one of {BLUR_STYLES}")
+    g = b.get("glass", {})
+    lines = [f"    const val BLUR_STYLE_DEFAULT = \"{default}\""]
+    for key in BLUR_GLASS_FIELDS:
+        v = g.get(key)
+        if not isinstance(v, (int, float)) or v < 0:
+            raise SystemExit(f"themes.json: blurStyle.glass.{key} must be a number >= 0")
+        const = "BLUR_GLASS_" + "".join("_" + ch if ch.isupper() else ch.upper() for ch in key)
+        lines.append(f"    const val {const} = {num(v)}")
+    return lines
+
 
 def panel_chamfer(doc: dict) -> float:
     """The panel cut (themes.json "panel.chamferDp"): straight 45° cuts on top-start and bottom-end."""
@@ -306,7 +326,8 @@ def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin:
          f"    const val DEFAULT_ID = \"{doc['default']}\"",
          f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}",
          f"    const val SHADOW_DEFAULT = {str(bool(doc.get('shadow', {}).get('enabled', False))).lower()}",
-         f"    const val PANEL_CHAMFER_DP = {num(panel_chamfer(doc))}", "",
+         f"    const val PANEL_CHAMFER_DP = {num(panel_chamfer(doc))}",
+         *blur_style_lines(doc), "",
          "    val ALL: List<ThemePalette> = listOf("]
     for th, pal in themes:
         k.append(f"        ThemePalette(")

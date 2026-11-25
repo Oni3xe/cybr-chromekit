@@ -551,7 +551,21 @@ fun Modifier.hudPanel(): Modifier = composed {
     val outer = if (s == null) this else drawBehind {
         drawBands(panelShadowBands(t, density), t.colors.red, cut.toPx(), layoutDirection == LayoutDirection.Ltr)
     }
-    outer.clip(shape).background(t.colors.scrim).border(Px1, if (s != null) t.colors.red else t.colors.redDim, shape)
+    val framed = outer.clip(shape).background(t.colors.scrim).border(Px1, if (s != null) t.colors.red else t.colors.redDim, shape)
+    // Glass blur style: a subtle light band just inside the frame, brightest at the top-start corner
+    val g = t.glassBlur
+    if (g == null || t.glass == null) framed else framed.drawWithContent {
+        drawContent()
+        val ltr = layoutDirection == LayoutDirection.Ltr
+        val w = g.edgeWidthDp * density
+        val inset = -(1f + w / 2f)
+        val brush = androidx.compose.ui.graphics.Brush.linearGradient(
+            listOf(t.colors.text.copy(alpha = g.edgeAlpha), t.colors.text.copy(alpha = 0f)),
+            start = androidx.compose.ui.geometry.Offset(if (ltr) 0f else size.width, 0f),
+            end = androidx.compose.ui.geometry.Offset(if (ltr) size.width else 0f, size.height),
+        )
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, cut.toPx(), inset, ltr)), brush, style = Stroke(w))
+    }
 }
 
 /**

@@ -22,7 +22,7 @@ import java.util.concurrent.Executors
 @Stable
 class ChromekitThemeState internal constructor(
     private val settings: ThemeSettings,
-    private val client: LauncherThemeClient?,
+    private var client: LauncherThemeClient?,
     /** Launcher only: tells readers its provider changed (ContentResolver.notifyChange). */
     private val notifyShared: () -> Unit = {},
 ) {
@@ -32,6 +32,8 @@ class ChromekitThemeState internal constructor(
     /** This app's own glass and Shadow toggles (the launcher's apply while following it). */
     var localGlass by mutableStateOf(settings.glass); private set
     var localShadow by mutableStateOf(settings.shadow); private set
+    /** This app's own glass blur style (the launcher's applies while following it). */
+    var localBlurStyle by mutableStateOf(settings.blurStyle); private set
 
     /** The trusted launcher's shared look (theme, glass, Shadow, wallpaper), or null. */
     var shared by mutableStateOf<SharedTheme?>(null); private set
@@ -39,10 +41,17 @@ class ChromekitThemeState internal constructor(
     /** True in the launcher itself: it shares its theme instead of following one. */
     val isLauncher: Boolean get() = client == null
 
-    val resolved: ResolvedTheme get() = resolveTheme(localThemeId, followLauncher && !isLauncher, shared, localGlass, localShadow)
+    val resolved: ResolvedTheme get() = resolveTheme(localThemeId, followLauncher && !isLauncher, shared, localGlass, localShadow, localBlurStyle)
     val active: ChromekitThemeInfo get() = resolved.theme
     val glass: Boolean get() = resolved.glass
     val shadow: Boolean get() = resolved.shadow
+    /** The glass blur style in use (the launcher's while following it). */
+    val blurStyle: com.oni3xe.chromekit.views.BlurStyle get() = resolved.blurStyle
+    /**
+     * The background in use: the launcher's mode while following it (NONE black, THEME the theme
+     * bg, DEFAULT the theme wallpaper, IMPORT [wallpaperUri]), else [BackgroundMode.DEFAULT].
+     */
+    val background: BackgroundMode get() = resolved.background
 
     /** The launcher's validated wallpaper URI while following it, else null; open with [openSharedWallpaper]. */
     val wallpaperUri: String? get() = resolved.wallpaperUri
@@ -80,12 +89,21 @@ class ChromekitThemeState internal constructor(
         if (isLauncher) notifyShared()
     }
 
+    /** Picks this app's glass blur style; breaks away from the launcher like [useGlass]. */
+    fun useBlurStyle(style: com.oni3xe.chromekit.views.BlurStyle) {
+        if (followingLauncher) { keepLauncherLook(); useLauncherTheme(false) }
+        settings.blurStyle = style
+        localBlurStyle = style
+        if (isLauncher) notifyShared()
+    }
+
     /** Copies the launcher's current look into the local settings before breaking away, so only the toggled value changes. */
     private fun keepLauncherLook() {
         val r = resolved
         settings.localThemeId = r.theme.id; localThemeId = r.theme.id
         settings.glass = r.glass; localGlass = r.glass
         settings.shadow = r.shadow; localShadow = r.shadow
+        settings.blurStyle = r.blurStyle; localBlurStyle = r.blurStyle
     }
 
     /** The active token set, glass and Shadow applied when on. */
@@ -137,24 +155,37 @@ class ChromekitThemeState internal constructor(
          * never reads a provider.
          */
         @Volatile private var instance: ChromekitThemeState? = null
+        @Volatile private var debugAllowed = false
 
-        fun get(context: Context): ChromekitThemeState = instance ?: synchronized(this) {
-            instance ?: run {
-                val app = context.applicationContext
-                val isLauncher = app.packageName == LauncherThemeContract.LAUNCHER_PACKAGE
-                ChromekitThemeState(
-                    ThemeSettings(SharedPreferencesThemePrefs.of(app)),
-                    if (isLauncher) null else LauncherThemeClient(app),
-                ) { runCatching { app.contentResolver.notifyChange(LauncherThemeContract.URI, null) } }.also { instance = it }
+        /**
+         * The process's state. Pass [allowDebug] = `BuildConfig.DEBUG` (the same value everywhere):
+         * debug builds then also trust a launcher signed with the box debug key
+         * ([LAUNCHER_DEBUG_CERT_SHA256]); release builds only the release pin. Once any call passes
+         * true the state keeps trusting the debug key; false never downgrades it.
+         */
+        fun get(context: Context, allowDebug: Boolean = false): ChromekitThemeState = synchronized(this) {
+            val app = context.applicationContext
+            val isLauncher = app.packageName == LauncherThemeContract.LAUNCHER_PACKAGE
+            val upgrade = allowDebug && !debugAllowed
+            if (allowDebug) debugAllowed = true
+            val current = instance
+            if (current != null) {
+                if (upgrade && !isLauncher) { current.client = LauncherThemeClient(app, allowDebug = true); current.refresh() }
+                return current
             }
+            ChromekitThemeState(
+                ThemeSettings(SharedPreferencesThemePrefs.of(app)),
+                if (isLauncher) null else LauncherThemeClient(app, allowDebug = debugAllowed),
+            ) { runCatching { app.contentResolver.notifyChange(LauncherThemeContract.URI, null) } }.also { instance = it }
         }
     }
 }
 
+/** [ChromekitThemeState.get] for Compose; pass [allowDebug] = `BuildConfig.DEBUG`. */
 @Composable
-fun rememberChromekitThemeState(): ChromekitThemeState {
+fun rememberChromekitThemeState(allowDebug: Boolean = false): ChromekitThemeState {
     val context = LocalContext.current
-    return remember { ChromekitThemeState.get(context) }
+    return remember(allowDebug) { ChromekitThemeState.get(context, allowDebug) }
 }
 
 /**

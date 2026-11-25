@@ -331,7 +331,10 @@ recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red
   `content://com.oni3xe.cybrlauncher.chromekit.theme/wallpaper/<id>`, id 1-64 of `A-Za-z0-9_-`,
   served by the same provider's read-only `openFile`) and `background` (String, `BackgroundMode`:
   `none` = pure black, `theme` = the theme's `bg` tint, `default` = the theme's bundled wallpaper,
-  `import` = the user's own wallpaper via `wallpaper`; missing or unknown = `default`). No insert/update/delete, no write mode.
+  `import` = the user's own wallpaper via `wallpaper`; missing or unknown = `default`) and
+  `blur_style` (String, `plain` / `glass`; missing or unknown = `glass`). No insert/update/delete,
+  no write mode. Both ends share one definition, `views/ThemeSyncWire` (the launcher builds its rows
+  with `ThemeSyncWire.row`).
 - Other apps read it on start and on change (ContentObserver). They trust it only if the
   provider's package is `com.oni3xe.cybrlauncher` **and** its single current signing certificate's
   SHA-256 equals `LAUNCHER_CERT_SHA256` (`theme/LauncherThemeSync.kt`). Rows are validated fail
@@ -342,7 +345,18 @@ recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red
   picker shows "Following launcher" with a "Use local" break-away; changing a theme, glass or
   Shadow while following also breaks away, keeping the rest of the launcher's look.
 - `LAUNCHER_CERT_SHA256` is currently `LAUNCHER_CERT_SHA256_PLACEHOLDER`: until Oni3xe pins the
-  launcher's release certificate hash there, sync **fails closed** (no provider is even queried).
+  launcher's release certificate hash there, release builds **fail closed** (no provider is even
+  queried).
+- Debug builds: pass `allowDebug = BuildConfig.DEBUG` once, before anything else reads the theme
+  (`ChromekitTheme(state = rememberChromekitThemeState(allowDebug = BuildConfig.DEBUG)) { … }`, or
+  `ChromekitThemeState.get(context, BuildConfig.DEBUG)` in a Service/IME), and enable
+  `android { buildFeatures { buildConfig = true } }`. Then a launcher signed with the box debug key
+  (`LAUNCHER_DEBUG_CERT_SHA256`, `cae5089a…8772`) is trusted too; release builds never trust it.
+  The state is one per process and only upgrades to debug trust, never down.
+- Blur style: with glass on, `BlurStyle.GLASS` (default) adds bloom, a saturation/tone boost, fine
+  grain and a light band on panel edges; `PLAIN` is the blur alone. Wrap the background layer in
+  `Modifier.chromekitGlassBackground(CybrTheme.tokens)`; `hudPanel()` draws the band. Views apps:
+  add `chromekit/android/src/views/java` as a source dir and use `GlassBlur`.
 - Release signing stays per app. The kit's manifest adds only a `<queries>` entry for the
   launcher's package (Android 11+ package visibility). No permissions, no INTERNET, no telemetry.
 

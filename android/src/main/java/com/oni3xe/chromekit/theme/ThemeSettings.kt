@@ -52,12 +52,18 @@ class ThemeSettings(private val prefs: ThemePrefs) {
         get() = prefs.getBoolean(KEY_SHARE, false)
         set(value) = prefs.put(KEY_SHARE, value)
 
+    /** The glass blur style; never chosen (or unknown) reads as the default, glass. */
+    var blurStyle: com.oni3xe.chromekit.views.BlurStyle
+        get() = com.oni3xe.chromekit.views.BlurStyle.parse(prefs.getString(KEY_BLUR))
+        set(value) = prefs.put(KEY_BLUR, value.value)
+
     companion object {
         const val KEY_THEME = "theme_id"
         const val KEY_FOLLOW = "follow_launcher"
         const val KEY_SHARE = "share_to_all_apps"
         const val KEY_GLASS = "glass"
         const val KEY_SHADOW = "shadow"
+        const val KEY_BLUR = "blur_style"
     }
 }
 
@@ -73,8 +79,11 @@ data class ResolvedTheme(
     val glass: Boolean = false,
     val shadow: Boolean = false,
     val wallpaperUri: String? = null,
+    /** The background mode: the launcher's while following it, else [BackgroundMode.DEFAULT]. */
+    val background: BackgroundMode = BackgroundMode.DEFAULT,
+    val blurStyle: com.oni3xe.chromekit.views.BlurStyle = com.oni3xe.chromekit.views.BlurStyle.DEFAULT,
 ) {
-    val tokens: CybrTokens get() = theme.tokens(glass, shadow)
+    val tokens: CybrTokens get() = theme.tokens(glass, shadow, blurStyle)
 }
 
 /**
@@ -87,9 +96,11 @@ fun resolveTheme(
     shared: SharedTheme?,
     localGlass: Boolean = false,
     localShadow: Boolean = false,
+    localBlurStyle: com.oni3xe.chromekit.views.BlurStyle = com.oni3xe.chromekit.views.BlurStyle.DEFAULT,
 ): ResolvedTheme =
     if (followLauncher && shared != null) {
-        ResolvedTheme(ChromekitThemes.byId(shared.themeId), ThemeSource.Launcher, shared.glass, shared.shadow, shared.wallpaperUri)
+        ResolvedTheme(ChromekitThemes.byId(shared.themeId), ThemeSource.Launcher, shared.glass, shared.shadow,
+            shared.wallpaperUri, shared.background, shared.blurStyle)
     } else {
-        ResolvedTheme(ChromekitThemes.byId(localThemeId), ThemeSource.Local, localGlass, localShadow)
+        ResolvedTheme(ChromekitThemes.byId(localThemeId), ThemeSource.Local, localGlass, localShadow, blurStyle = localBlurStyle)
     }

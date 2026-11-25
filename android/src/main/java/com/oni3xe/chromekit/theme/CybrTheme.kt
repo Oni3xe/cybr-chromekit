@@ -133,6 +133,11 @@ data class CybrTokens(
     val glass: GlassStyle? = null,
     /** Non-null when Shadow is on: a subtle primary-colour glow outward from each panel edge. */
     val shadow: ShadowStyle? = null,
+    /**
+     * Non-null when glass is on with the "glass" blur style: the backdrop gets saturation/tone,
+     * bloom and grain ([chromekitGlassBackground]) and panels an edge light band ([com.oni3xe.chromekit.hudPanel]).
+     */
+    val glassBlur: com.oni3xe.chromekit.views.GlassBlurSpec? = null,
 )
 
 val Rajdhani = FontFamily(

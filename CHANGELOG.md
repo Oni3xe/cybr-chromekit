@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- Theme sync, debug trust: `LAUNCHER_DEBUG_CERT_SHA256` (the box debug key, public) and an
+  `allowDebug` parameter on `LauncherThemeClient`, `LauncherTrust.isTrusted`/`acceptedPins`,
+  `ChromekitThemeState.get(context, allowDebug)` and `rememberChromekitThemeState(allowDebug)`. Apps
+  pass `BuildConfig.DEBUG`; the debug pin is accepted only then. The release pin is still the
+  placeholder, so release builds stay fail-closed (no IPC). Package and single-signer checks apply
+  to both pins.
+- One wire format for both ends: `views/ThemeSyncWire` (authority, path, columns, wallpaper URIs,
+  `row()`); `LauncherThemeContract` aliases it and the launcher's provider builds its rows with it.
+  New column `blur_style` (`plain` / `glass`; missing or unknown = glass). `ResolvedTheme` and
+  `ChromekitThemeState` now expose `background` and `blurStyle`.
+- Blur style: `BlurStyle.PLAIN` (blur only) and `BlurStyle.GLASS` (default): blur + saturation/tone
+  boost + soft bloom on bright areas + fine grain, and a subtle light band inside `hudPanel()`
+  frames. API 33+: one AGSL `RuntimeShader` chained after the blur; API 31-32: colour matrix + grain
+  overlay; below 31: grain overlay only (no blur, as before). Numbers in `themes.json` `blurStyle`
+  (`BLUR_GLASS_*`). Framework-only code lives in `android/src/views/java` (`GlassBlur`,
+  `GlassBlurMath`, `BlurStyle`, `ThemeSyncWire`) so Views apps compile the same code
+  (`sourceSets.main.java.srcDir("chromekit/android/src/views/java")`).
+  `CybrTokens.glassBlur`, `theme.tokens(glass, shadow, blurStyle)`, `ThemeSettings.blurStyle`,
+  `ChromekitThemeState.useBlurStyle()`.
+
 - `hudScreenFrame()` draws the Shadow too, gated by `CybrTheme.tokens.shadow`: the same smooth fade
   as panels, but inward from the frame line (a full-screen frame has no room outside), and the frame
   turns primary. Shadow off draws no glow. Geometry: `screenFrameShadowBands()` (tested).

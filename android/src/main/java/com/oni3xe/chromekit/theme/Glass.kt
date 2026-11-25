@@ -2,20 +2,38 @@ package com.oni3xe.chromekit.theme
 
 import android.os.Build
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.oni3xe.chromekit.glassGlow
+import com.oni3xe.chromekit.views.GlassBlur
 
 /**
- * For the app's background layer (wallpaper, photo) behind glass panels: blurs it by the active
- * theme's glass blur radius on API 31+ (RenderEffect via Modifier.blur, no extra dependency). Below
- * API 31, or with glass off, it does nothing and panels stay translucent without blur.
+ * For the app's background layer (wallpaper, photo) behind glass panels. With glass on: API 31+
+ * blurs it by the theme's glass blur radius (RenderEffect); with the "glass" blur style
+ * ([CybrTokens.glassBlur]) API 33+ adds bloom, a saturation/tone boost and fine grain (one AGSL
+ * RuntimeShader chained after the blur), API 31-32 the saturation/tone boost plus a grain overlay.
+ * Below API 31 there is no blur: the glass style still gets the grain overlay, panels stay
+ * translucent. Glass off: no-op.
  */
 fun Modifier.chromekitGlassBackground(tokens: CybrTokens): Modifier {
     val g = tokens.glass ?: return this
-    if (Build.VERSION.SDK_INT < 31 || g.blurRadiusDp <= 0f) return this
-    return blur(g.blurRadiusDp.dp, BlurredEdgeTreatment.Rectangle)
+    val spec = tokens.glassBlur
+    var m = this
+    if (Build.VERSION.SDK_INT >= 31 && g.blurRadiusDp > 0f) {
+        m = m.graphicsLayer {
+            renderEffect = GlassBlur.blurEffect(g.blurRadiusDp.dp.toPx(), spec)?.asComposeRenderEffect()
+            clip = true
+        }
+    }
+    if (spec != null && !GlassBlur.effectHasGrain) {
+        val brush = ShaderBrush(GlassBlur.grainShader())
+        val alpha = GlassBlur.grainPaintAlpha(spec) / 255f
+        m = m.drawWithContent { drawContent(); drawRect(brush, alpha = alpha) }
+    }
+    return m
 }
 
 /** The glass glow for a key element (clock, active button); no-op with glass off. */
