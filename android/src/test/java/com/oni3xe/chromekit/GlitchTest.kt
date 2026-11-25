@@ -70,6 +70,22 @@ class GlitchTest {
         }
     }
 
+    @Test fun tintedDrawsOnlyTheMainColourAtAHigherAlpha() {
+        val main = 0xFFC8383C.toInt(); val accent = 0xFF8DA5A7.toInt()
+        for (st in 1..3) {
+            val on = GlitchMath.ink(main, accent, st, tinted = true)
+            val off = GlitchMath.ink(main, accent, st, tinted = false)
+            assertEquals(setOf(main), on.colors)
+            assertTrue(on.alpha >= off.alpha * 1.5f && on.alpha <= GlitchMath.TINT_ALPHA_MAX)
+            // Neutral unchanged: main + accent marks, black flicker, the original alpha
+            assertEquals(com.oni3xe.chromekit.views.GlitchInk(main, accent, 0xFF000000.toInt(), GlitchMath.alpha(st)), off)
+        }
+        assertEquals(0.252f, GlitchMath.alpha(1, true), 1e-4f)
+        assertEquals(0.36f, GlitchMath.alpha(2, true), 1e-4f)
+        assertEquals(0.45f, GlitchMath.alpha(3, true), 1e-4f)
+        assertFalse(com.oni3xe.chromekit.views.GlitchSpec(GlitchType.DEFAULT, 1).tinted)
+    }
+
     @Test fun visibleButSubtle() {
         assertTrue(GlitchMath.alpha(1) >= 0.12f) // round 11's 0.06 was invisible on a device
         assertTrue(GlitchMath.alpha(1) < GlitchMath.alpha(2) && GlitchMath.alpha(2) < GlitchMath.alpha(3))

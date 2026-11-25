@@ -37,7 +37,13 @@ enum class GlitchType(val value: String) {
  * Type, strength and frequency together. [strength] (1..3) sets how strong a burst looks;
  * [frequency] (1..3) sets how often bursts come, independently. Frequency 1 is the original cadence.
  */
-data class GlitchSpec(val type: GlitchType, val strength: Int, val frequency: Int = GlitchMath.MIN_FREQUENCY) {
+data class GlitchSpec(
+    val type: GlitchType,
+    val strength: Int,
+    val frequency: Int = GlitchMath.MIN_FREQUENCY,
+    /** Theme tint: the whole glitch in the main colour only, at a higher alpha (see [GlitchMath.ink]). */
+    val tinted: Boolean = false,
+) {
     init {
         require(strength in GlitchMath.MIN_STRENGTH..GlitchMath.MAX_STRENGTH)
         require(frequency in GlitchMath.MIN_FREQUENCY..GlitchMath.MAX_FREQUENCY)
@@ -61,6 +67,11 @@ object GlitchMath {
     private val BURST_MIN_MS = longArrayOf(160, 200, 260)
     private val BURST_MAX_MS = longArrayOf(260, 320, 420)
     private val ALPHA = floatArrayOf(0.14f, 0.20f, 0.28f)
+    /** Tinted: alpha x1.8, capped so strength 3 stays tasteful. */
+    const val TINT_ALPHA_FACTOR = 1.8f
+    const val TINT_ALPHA_MAX = 0.45f
+    /** Neutral mode's flicker dim (TEAR). */
+    const val FLICKER_NEUTRAL: Int = -0x1000000 // opaque black
     /** Gap multiplier per frequency: 1 = the original gaps exactly, 2 = ~1.7x as often, 3 = ~3x. */
     private val FREQUENCY_GAP_FACTOR = floatArrayOf(1f, 0.6f, 0.35f)
     /** No gap is ever shorter than this (frequency 2-3 only; frequency 1 gaps are 3s and up). */
@@ -92,8 +103,20 @@ object GlitchMath {
     /** Length of one burst. */
     fun burstMs(strength: Int, rnd: Random): Long = rnd.nextLong(BURST_MIN_MS[i(strength)], BURST_MAX_MS[i(strength)] + 1)
 
-    /** Peak alpha of the overlay marks. */
+    /** Peak alpha of the overlay marks (neutral mode). */
     fun alpha(strength: Int): Float = ALPHA[i(strength)]
+
+    /** Peak alpha for neutral or tinted mode. */
+    fun alpha(strength: Int, tinted: Boolean): Float =
+        if (tinted) (alpha(strength) * TINT_ALPHA_FACTOR).coerceAtMost(TINT_ALPHA_MAX) else alpha(strength)
+
+    /**
+     * The colours and alpha a burst draws with. Neutral: [main] + [accent] marks, a black flicker.
+     * Tinted: every mark and the flicker in [main] only, at [alpha] (strength, tinted).
+     */
+    fun ink(main: Int, accent: Int, strength: Int, tinted: Boolean): GlitchInk =
+        if (tinted) GlitchInk(main, main, main, alpha(strength, true))
+        else GlitchInk(main, accent, FLICKER_NEUTRAL, alpha(strength, false))
 
     /** How many marks (lines, slices, blocks) per frame. */
     fun marks(type: GlitchType, strength: Int): Int = when (type) {
@@ -120,9 +143,14 @@ object GlitchMath {
     )
 }
 
+/** What one burst draws with: mark colours, the TEAR flicker colour and the peak alpha (0..1). */
+data class GlitchInk(val primary: Int, val secondary: Int, val flicker: Int, val alpha: Float) {
+    val colors: Set<Int> get() = setOf(primary, secondary, flicker)
+}
+
 /**
  * Full-screen, non-interactive overlay. Set [spec] (null = off) and [primary]/[secondary] (theme
- * colours: red, cyan, or the launcher's light theme tint). Set the colours before [spec]. It idles with no drawing and no frame callbacks; a timer wakes it for a short
+ * colours: main, accent). With [GlitchSpec.tinted] it draws in [primary] only, at a higher alpha. It idles with no drawing and no frame callbacks; a timer wakes it for a short
  * burst of a few frames, then sleeps again. The first burst comes 1-2s after it starts running
  * (turned on, shown again, back from another screen). It only runs while attached, shown and its
  * window visible (screen off or another app on top stops it), and never with reduced motion.
@@ -205,7 +233,9 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
         if (burstEnd == 0L) return
         val w = width.toFloat(); val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
-        val a = (GlitchMath.alpha(s.strength) * 255).toInt()
+        val ink = GlitchMath.ink(primary, secondary, s.strength, s.tinted)
+        val primary = ink.primary; val secondary = ink.secondary
+        val a = (ink.alpha * 255).toInt()
         val n = GlitchMath.marks(s.type, s.strength)
         val px = resources.displayMetrics.density
         when (s.type) {
@@ -229,7 +259,7 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
                 canvas.drawRect(off, y + px, w + off, y + sh + px, paint)
             }
             GlitchType.TEAR -> {
-                paint.color = Color.BLACK; paint.alpha = a / 2
+                paint.color = ink.flicker; paint.alpha = a / 2
                 canvas.drawRect(0f, 0f, w, h, paint) // flicker
                 val y = rnd.nextFloat() * h
                 val th = (10f + rnd.nextFloat() * 24f) * px

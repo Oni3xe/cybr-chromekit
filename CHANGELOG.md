@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Glitch overlay (`views/Glitch.kt`, cybr-launcher only, not synced): `GlitchOverlayView`,
-  `GlitchType` (scanlines / rgb / tear / blocks), `GlitchSpec` (strength 1-3, frequency 1-3), `GlitchMath`. First
+  `GlitchType` (scanlines / rgb / tear / blocks), `GlitchSpec` (strength 1-3, frequency 1-3, tinted), `GlitchMath`, `GlitchInk`. Tinted draws every
+  mark in the main colour only at 1.8x alpha (max 0.45). First
   burst 1-2s after it starts running (turned on, back on screen), then 160-420ms bursts at ~20fps
   every 3-12s at frequency 1 (at most 15% of the time drawing); frequency 2 / 3 shorten the gaps to
   0.6x / 0.35x, never under 1.5s (at most 25% / 30% drawing); idle with no frames in between; stops while
