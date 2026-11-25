@@ -516,48 +516,77 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
 /**
  * Panel over other content: scrim fill, 1dp red.dim frame, straight 45° cuts on the top-start and
  * bottom-end corners (`CybrTheme.tokens.shapes.panel`, 10dp, mirrored in RTL). With glass on
- * (`CybrTheme.tokens.glass`), the fill is translucent, the frame a light hairline and a soft
- * primary-accent glow is drawn behind (strokes, never shadow()). With Shadow on
- * (`CybrTheme.tokens.shadow`), a subtle primary-colour glow radiates outward from the edge.
+ * (`CybrTheme.tokens.glass`) the fill is translucent; the frame keeps its colour. With Shadow on
+ * (`CybrTheme.tokens.shadow`) a soft primary-colour glow fades smoothly outward from the edge and
+ * the frame turns primary. Shadow off draws no glow at all, in glass mode too ([panelShadowBands]).
  */
 fun Modifier.hudPanel(): Modifier = composed {
     val t = CybrTheme.tokens
-    val g = t.glass
     val s = t.shadow
-    // Every theme: top-start + bottom-end 45° cuts; the band, glow and frame follow that outline.
+    // Every theme: top-start + bottom-end 45° cuts; the glow and frame follow that outline.
     val cut = t.shapes.panelCut
     val shape = t.shapes.panel
-    val outer = if (s == null) this else shadowGlow(t.colors.red, s.alpha, s.radiusDp.dp, s.edgeAlpha, s.edgeWidthDp.dp, cut = cut)
-    if (g == null) outer.clip(shape).background(t.colors.scrim).border(Px1, t.colors.redDim, shape)
-    else outer.glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp, cut = cut).clip(shape).background(t.colors.scrim)
-        // With Shadow on, a 1dp primary frame so the glow reads as coming from the edge.
-        .border(Px1, if (s != null) t.colors.red else t.colors.text.copy(alpha = g.borderAlpha), shape)
+    // Shadow off: no drawBehind at all, so nothing can be drawn outside the frame
+    val outer = if (s == null) this else drawBehind {
+        drawBands(panelShadowBands(t, density), t.colors.red, cut.toPx(), layoutDirection == LayoutDirection.Ltr)
+    }
+    outer.clip(shape).background(t.colors.scrim).border(Px1, if (s != null) t.colors.red else t.colors.redDim, shape)
 }
 
 /**
- * Shadow: a bright band of [color] at [edgeAlpha] hugging the edge ([edgeWidth] wide, just outside
- * it), then [steps] strokes fading from [alpha] to 0 out to [radius]. Square, drawn behind.
+ * Shadow: [color] fading smoothly outward from the edge to [radius]: [edgeAlpha] at the edge,
+ * easing to [alpha] over [edgeWidth], then a quadratic fade to 0 ([shadowBands]: bands of at most
+ * 1px, so no visible steps). Follows the [cut] outline, drawn behind. [steps] is ignored (kept for
+ * source compatibility).
  */
-fun Modifier.shadowGlow(color: Color, alpha: Float, radius: Dp, edgeAlpha: Float, edgeWidth: Dp, steps: Int = 6, cut: Dp = 0.dp): Modifier =
-    if ((alpha <= 0f || radius <= 0.dp) && (edgeAlpha <= 0f || edgeWidth <= 0.dp)) this else drawBehind {
-        val e = edgeWidth.toPx()
-        val r = radius.toPx()
-        val c = cut.toPx()
-        val ltr = layoutDirection == LayoutDirection.Ltr
-        val band = (r - e).coerceAtLeast(0f) / steps
-        for (i in steps downTo 1) {
-            val off = e + band * (i - 1) + band / 2
-            drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, off, ltr)), color.copy(alpha = alpha * (1f - (i - 1f) / steps)), style = Stroke(band))
-        }
-        if (edgeAlpha > 0f && e > 0f) {
-            drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, e / 2, ltr)), color.copy(alpha = edgeAlpha), style = Stroke(e))
-        }
+@Suppress("UNUSED_PARAMETER")
+fun Modifier.shadowGlow(color: Color, alpha: Float, radius: Dp, edgeAlpha: Float, edgeWidth: Dp, steps: Int = 0, cut: Dp = 0.dp): Modifier =
+    if ((alpha <= 0f && edgeAlpha <= 0f) || radius <= 0.dp) this else drawBehind {
+        drawBands(shadowBands(radius.toPx(), edgeWidth.toPx(), alpha, edgeAlpha), color, cut.toPx(), layoutDirection == LayoutDirection.Ltr)
     }
 
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBands(bands: FloatArray, color: Color, cut: Float, ltr: Boolean) {
+    for (i in bands.indices step 3) {
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, cut, bands[i], ltr)),
+            color.copy(alpha = bands[i + 2]), style = Stroke(bands[i + 1]))
+    }
+}
+
 /**
- * Soft glow radiating outward from an element's edge: 3 strokes of [color] fading out to [radius],
- * square, or following the top-start/bottom-end [cut] outline (Shadow panels). No-op at alpha 0.
- * Never shadow().
+ * The Shadow glow as strokes outside an edge: (offset of the stroke centre, stroke width, alpha)
+ * triples, outward from the edge. Every band is at most 1px wide and the alpha changes smoothly,
+ * so the glow reads as a gradient: [edgeAlpha] at the edge easing linearly to [alpha] at [edge],
+ * then a quadratic fade to 0 at [radius]. Bands under 1/255 alpha are dropped. Empty when there is
+ * nothing to draw. Pure math, in px.
+ */
+fun shadowBands(radius: Float, edge: Float, alpha: Float, edgeAlpha: Float): FloatArray {
+    if (radius <= 0f || (alpha <= 0f && edgeAlpha <= 0f)) return FloatArray(0)
+    val e = edge.coerceIn(0f, radius)
+    val n = kotlin.math.ceil(radius).toInt().coerceAtLeast(1)
+    val w = radius / n
+    val out = ArrayList<Float>(n * 3)
+    for (i in 0 until n) {
+        val d = w * (i + 0.5f)
+        val a = when {
+            d < e -> edgeAlpha + (alpha - edgeAlpha) * (d / e)
+            radius - e <= 0f -> 0f
+            else -> { val f = 1f - (d - e) / (radius - e); alpha * f * f }
+        }.coerceIn(0f, 1f)
+        if (a >= 1f / 255f) { out += d; out += w; out += a }
+    }
+    return out.toFloatArray()
+}
+
+/** [shadowBands] for a panel in [tokens] at [density]: empty whenever Shadow is off (glass or not). */
+fun panelShadowBands(tokens: com.oni3xe.chromekit.theme.CybrTokens, density: Float): FloatArray {
+    val s = tokens.shadow ?: return FloatArray(0)
+    return shadowBands(s.radiusDp * density, s.edgeWidthDp * density, s.alpha, s.edgeAlpha)
+}
+
+/**
+ * Soft glow radiating outward from a key element's edge (clock, active button; see
+ * `chromekitGlassGlow`): 3 strokes of [color] fading out to [radius], square, or following the
+ * top-start/bottom-end [cut] outline. Not used on panels. No-op at alpha 0. Never shadow().
  */
 fun Modifier.glassGlow(color: Color, alpha: Float, radius: Dp, cut: Dp = 0.dp): Modifier = if (alpha <= 0f || radius <= 0.dp) this else drawBehind {
     val r = radius.toPx()

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Shadow (Oni3xe's device test): smooth, narrower and subtler. `shadowGlow()` / `hudPanel()` draw
+  bands of at most 1px with a continuous alpha (`shadowBands()`: edge alpha easing into the outer
+  alpha, then a quadratic fade), instead of 6 visible steps. `themes.json` shadow: `alpha`
+  0.45 → 0.2, `radiusDp` 14 → 8, `edgeAlpha` 0.9 → 0.5, `edgeWidthDp` 2 → 1.
+- Fix: Shadow off drew a faint glow in glass mode (the glass glow on panels). Panels now draw no
+  glow at all unless Shadow is on (`panelShadowBands()`, tested for every theme with glass on and
+  off). The glass glow stays for key elements (`chromekitGlassGlow`).
+- Glass no longer turns the panel frame grey: `hudPanel()` keeps `red.dim` (primary with Shadow)
+  in glass mode; `borderAlpha` is left for apps' own hairlines.
+
 - Double cut everywhere (Oni3xe): every element that had the single 6dp top-start chamfer (tabs,
   menus, dialogs, toasts, the screen frame) gets the opposite bottom-end cut too, mirrored in RTL.
   Sizes are unchanged: 6dp items stay 6dp, 10dp panels stay 10dp. `ChamferShape` (and so

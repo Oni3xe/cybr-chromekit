@@ -18,15 +18,15 @@
     "blurRadiusDp": 12,
     "glowAlpha": 0.3,
     "glowRadiusDp": 10,
-    "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. border: the theme's text colour at borderAlpha (subtle light hairline). blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha, drawn as strokes out to glowRadiusDp."
+    "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. borderAlpha: kept for apps' own hairlines; panel frames keep the theme frame colour in glass mode. blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha out to glowRadiusDp, for key elements only (chromekitGlassGlow); panels get no glow unless Shadow is on."
   },
   "shadow": {
     "enabled": false,
-    "alpha": 0.45,
-    "radiusDp": 14,
-    "edgeAlpha": 0.9,
-    "edgeWidthDp": 2,
-    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). The band and glow follow the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
+    "alpha": 0.2,
+    "radiusDp": 8,
+    "edgeAlpha": 0.5,
+    "edgeWidthDp": 1,
+    "$comment": "Shadow: a soft neon glow in the theme's primary colour, brightest right at the panel border and fading smoothly outward. edgeAlpha/edgeWidthDp: the glow at the border, easing over edgeWidthDp into alpha; alpha/radiusDp: the outer fade, from alpha to 0 at radiusDp (quadratic ease). Drawn as bands of at most 1px (shadowBands), so there are no visible steps. Independent of glass; Shadow off draws nothing at all. With Shadow on, panels get a 1dp primary frame. The glow follows the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
   },
   "themes": [
     {

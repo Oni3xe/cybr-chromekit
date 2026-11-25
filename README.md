@@ -257,9 +257,9 @@ only token a theme may set to white; `gen_tokens.py` refuses white anywhere else
 |---|---|---|
 | `enabled` | `false` | default for the user's glass toggle |
 | `surfaceAlpha` | `0.55` | opacity of `surface.1`, `surface.2` and `scrim` (frosted panels) |
-| `borderAlpha` | `0.22` | panel hairline: the theme's `text` colour at this alpha |
+| `borderAlpha` | `0.22` | a light hairline (the theme's `text` colour at this alpha) for an app's own use; panel frames keep their colour in glass mode |
 | `blurRadiusDp` | `12` | background blur, API 31+ (`Modifier.blur`/RenderEffect); none below, panels stay translucent |
-| `glowAlpha` | `0.30` | soft primary-accent glow on panels and key elements (CHOPPER: `0.45`) |
+| `glowAlpha` | `0.30` | soft primary-accent glow on key elements, not panels (CHOPPER: `0.45`) |
 | `glowRadiusDp` | `10` | glow reach, drawn as strokes, never `shadow()` |
 
 **Cut shape (every theme):** every cut corner comes in a pair: straight 45° cuts on two opposite
@@ -281,17 +281,21 @@ and an app's `check.outlines` files, so every cut stays straight and paired.
 `menuPanel.chamfer`); the kit applies it to both corners, and the wording follows with the next
 design-vault tokens version (token values are unchanged).
 
-**Shadow**, off by default and independent of glass: a neon glow in the theme's primary colour,
-brightest in a band right at each panel's border and fading outward (`hudPanel()` /
-`shadowGlow()`, drawn strokes, square); with glass on, panels also get a 1dp primary frame.
-`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.45`, `radiusDp` `14`, `edgeAlpha` `0.9`,
-`edgeWidthDp` `2` (per-theme overrides allowed); the band and glow follow the panel cut outline;
+**Shadow**, off by default and independent of glass: a soft neon glow in the theme's primary
+colour, brightest at each panel's border and fading smoothly outward (`hudPanel()` /
+`shadowGlow()`). It is drawn as bands of at most 1px whose alpha eases continuously
+(`shadowBands()`: `edgeAlpha` at the edge easing to `alpha` over `edgeWidthDp`, then a quadratic
+fade to 0 at `radiusDp`), so there are no visible steps. With Shadow on, panels get a 1dp primary
+frame. **Shadow off draws nothing at all**, glass or not (`panelShadowBands()` is empty; tested).
+`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.2`, `radiusDp` `8`, `edgeAlpha` `0.5`,
+`edgeWidthDp` `1` (per-theme overrides allowed); the glow follows the panel cut outline;
 `CybrTheme.tokens.shadow` is non-null when on.
 
-With glass on, `CybrTheme.tokens.glass` is non-null, the surfaces are translucent, `hudPanel()`
-draws the light hairline and glow, and the app blurs its own background layer with
-`Modifier.chromekitGlassBackground(tokens)`; `Modifier.chromekitGlassGlow(tokens)` adds the glow to a
-key element (clock, active button). No new dependency.
+With glass on, `CybrTheme.tokens.glass` is non-null and the surfaces are translucent; `hudPanel()`
+keeps its frame colour (`red.dim`, primary with Shadow) and draws no glow, and the app blurs its
+own background layer with `Modifier.chromekitGlassBackground(tokens)`.
+`Modifier.chromekitGlassGlow(tokens)` adds the glass glow to a key element (clock, active button).
+No new dependency.
 
 Edit a palette: change `tokens/themes.json`, run `python3 tools/gen_tokens.py` (writes
 `android/.../theme/Themes.kt`), then

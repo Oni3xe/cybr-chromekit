@@ -24,9 +24,11 @@ internal data class ThemePalette(
 
 /**
  * The glass variant's values (tokens/themes.json "glass", per-theme overrides applied).
- * [surfaceAlpha]: opacity of surface.1, surface.2 and scrim. [borderAlpha]: the light hairline
- * (theme text colour at this alpha). [blurRadiusDp]: background blur, API 31+ only.
- * [glowAlpha] / [glowRadiusDp]: the soft primary-accent glow on panels and key elements.
+ * [surfaceAlpha]: opacity of surface.1, surface.2 and scrim. [borderAlpha]: a light hairline (theme
+ * text colour at this alpha) for an app's own use; panel frames keep the theme frame colour in
+ * glass mode. [blurRadiusDp]: background blur, API 31+ only. [glowAlpha] / [glowRadiusDp]: the
+ * soft primary-accent glow on key elements (`chromekitGlassGlow`); panels get no glow without
+ * Shadow.
  */
 @Immutable
 data class GlassStyle(
@@ -39,9 +41,9 @@ data class GlassStyle(
 
 /**
  * Shadow (tokens/themes.json "shadow"): a neon glow in the theme's primary colour, brightest at the
- * panel border and fading outward. [edgeAlpha] / [edgeWidthDp]: the bright band hugging the edge;
- * [alpha] / [radiusDp]: the outer fade from the band to 0. Band and glow follow the panel cut
- * outline ([CybrShapes.panelCut]). Independent of glass.
+ * panel border and fading smoothly outward ([com.oni3xe.chromekit.shadowBands]). [edgeAlpha] at the
+ * edge eases to [alpha] over [edgeWidthDp]; then a quadratic fade to 0 at [radiusDp]. Follows the
+ * panel cut outline ([CybrShapes.panelCut]). Independent of glass; off draws nothing.
  */
 @Immutable
 data class ShadowStyle(val alpha: Float, val radiusDp: Float, val edgeAlpha: Float, val edgeWidthDp: Float)
