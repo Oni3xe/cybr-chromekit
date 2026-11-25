@@ -217,7 +217,7 @@ THEME_FIELDS = [("bg", "bg"), ("surface1", "surface.1"), ("surface2", "surface.2
 # The only colour key a theme may set to white: the error colour (Oni3xe's explicit exception).
 WHITE_OK = {"error"}
 # GlassStyle fields: (themes.json key, Kotlin field, Kotlin type).
-SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp"), ("edgeAlpha", "edgeAlpha"), ("edgeWidthDp", "edgeWidthDp")]
+SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp"), ("edgeAlpha", "edgeAlpha"), ("edgeWidthDp", "edgeWidthDp"), ("chamferDp", "chamferDp")]
 GLASS_FIELDS = [("surfaceAlpha", "surfaceAlpha", "f"), ("borderAlpha", "borderAlpha", "f"),
                 ("blurRadiusDp", "blurRadiusDp", "f"), ("glowAlpha", "glowAlpha", "f"), ("glowRadiusDp", "glowRadiusDp", "f")]
 

@@ -59,6 +59,15 @@ def chamfer(x0, y0, x1, y1, cut=6):
     return [tuple(sc(x0 + cut, y0)), tuple(sc(x1, y0)), tuple(sc(x1, y1)), tuple(sc(x0, y1)), tuple(sc(x0, y0 + cut))]
 
 
+def opposing(x0, y0, x1, y1, cut, inflate):
+    """Pixel outline with 45° cuts on top-left and bottom-right, pushed out by inflate (Hud.kt opposingChamferOutline)."""
+    l, t, r, b = x0 - inflate, y0 - inflate, x1 + inflate, y1 + inflate
+    if cut <= 0:
+        return [(l, t), (r, t), (r, b), (l, b)]
+    c = cut + inflate * (2 - 2 ** 0.5)
+    return [(l + c, t), (r, t), (r, b - c), (r - c, b), (l, b), (l, t + c)]
+
+
 def fog(w: int, h: int) -> Image.Image:
     """A dark teal-to-black fog with faint tower silhouettes, blurred (painted, no photo)."""
     img = Image.new("RGB", (w, h))
@@ -95,31 +104,40 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool, sha
     c = {k: rgba(v) for k, v in p.items() if not k.startswith("_")}
     g = p["_glass"]
     x0, y0, x1, y1 = sc(ox, oy, ox + CARD_W, oy + CARD_H)
+    sh = p["_shadow"]
+    cut = sh["chamferDp"] * S if shadow else 0
+    # Panel outline: Shadow on = 45° cuts on top-left and bottom-right; off = today's top-left chamfer.
+    outline = opposing(x0, y0, x1, y1, cut, 0) if shadow else chamfer(ox, oy, ox + CARD_W, oy + CARD_H, 10)
     if shadow:  # Shadow, as shadowGlow() draws it: outer fade from alpha to 0, then the bright edge band
-        sh = p["_shadow"]
         e, r, steps = sh["edgeWidthDp"] * S, sh["radiusDp"] * S, 6
         band = max(r - e, 0) / steps
         layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
         ld = ImageDraw.Draw(layer)
         for i in range(steps, 0, -1):
-            off = e + band * i
-            ld.rectangle((x0 - off, y0 - off, x1 + off, y1 + off), outline=c["red"][:3] + (round(255 * sh["alpha"] * (1 - (i - 1) / steps)),),
-                         width=max(1, round(band)))
+            off = e + band * (i - 1) + band / 2
+            ld.polygon(opposing(x0, y0, x1, y1, cut, off), outline=c["red"][:3] + (round(255 * sh["alpha"] * (1 - (i - 1) / steps)),),
+                       width=max(1, round(band)))
         layer = layer.filter(ImageFilter.GaussianBlur(S))
-        ImageDraw.Draw(layer).rectangle((x0 - e, y0 - e, x1 + e, y1 + e), outline=c["red"][:3] + (round(255 * sh["edgeAlpha"]),), width=max(1, round(e)))
+        ImageDraw.Draw(layer).polygon(opposing(x0, y0, x1, y1, cut, e / 2), outline=c["red"][:3] + (round(255 * sh["edgeAlpha"]),), width=max(1, round(e)))
         img.alpha_composite(layer)
+    mask = Image.new("L", img.size, 0)
+    ImageDraw.Draw(mask).polygon(outline, fill=255)
     if glass:
-        region = img.crop((x0, y0, x1, y1)).filter(ImageFilter.GaussianBlur(g["blurRadiusDp"] * S / 2))
-        img.paste(region, (x0, y0))
-        glow(img, (x0, y0, x1, y1), c["red"], g["glowAlpha"] * 0.6, g["glowRadiusDp"])
+        img.paste(img.crop((x0, y0, x1, y1)).filter(ImageFilter.GaussianBlur(g["blurRadiusDp"] * S / 2)), (x0, y0), mask.crop((x0, y0, x1, y1)))
+        if shadow:
+            layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+            ImageDraw.Draw(layer).polygon(opposing(x0, y0, x1, y1, cut, g["glowRadiusDp"] * S / 2), outline=c["red"][:3] + (round(255 * g["glowAlpha"] * 0.6),),
+                                          width=max(1, round(g["glowRadiusDp"] * S / 2)))
+            img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(g["glowRadiusDp"] * S / 2)))
+        else:
+            glow(img, (x0, y0, x1, y1), c["red"], g["glowAlpha"] * 0.6, g["glowRadiusDp"])
         over = Image.new("RGBA", img.size, (0, 0, 0, 0))
-        od = ImageDraw.Draw(over)
-        od.polygon(chamfer(ox, oy, ox + CARD_W, oy + CARD_H, 10), fill=c["surface.1"][:3] + (round(255 * g["surfaceAlpha"]),),
-                   outline=c["red"] if shadow else c["text"][:3] + (round(255 * g["borderAlpha"]),), width=S)
+        ImageDraw.Draw(over).polygon(outline, fill=c["surface.1"][:3] + (round(255 * g["surfaceAlpha"]),),
+                                     outline=c["red"] if shadow else c["text"][:3] + (round(255 * g["borderAlpha"]),), width=S)
         img.alpha_composite(over)
     else:
         d = ImageDraw.Draw(img, "RGBA")
-        d.polygon(chamfer(ox, oy, ox + CARD_W, oy + CARD_H, 10), fill=c["surface.1"], outline=c["red.dim"], width=S)
+        d.polygon(outline, fill=c["surface.1"], outline=c["red.dim"], width=S)
     # Everything else is drawn on an overlay so translucent strokes blend; glows go straight onto img, behind.
     ov = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(ov)

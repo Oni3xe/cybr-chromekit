@@ -21,7 +21,8 @@
 - Shadow, off by default and independent of glass: a primary-colour neon glow, brightest in a band
   at the panel border and fading outward (`"shadow"` tokens: alpha, radiusDp, edgeAlpha,
   edgeWidthDp; generated into `ShadowStyle`, `CybrTokens.shadow`). With glass on, Shadow also gives
-  panels a 1dp primary frame. Toggle on the Customization screen.
+  panels a 1dp primary frame. Shadow panels get straight 45° cuts on the top-start and bottom-end
+  corners (`chamferDp` 10, `OpposingChamferShape`); band, glow and frame follow the cut outline. Toggle on the Customization screen.
 - `gen_tokens.py` generates the kit's `theme/Themes.kt` from `themes.json` when `tokens.themes` is
   set (only the kit's own `chromekit.json`); apps' generated files only change by the version.
 - Runtime theme switching (`ChromekitTheme`, `ChromekitThemeState`, persisted in

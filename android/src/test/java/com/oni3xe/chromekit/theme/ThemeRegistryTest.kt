@@ -74,6 +74,7 @@ class ThemeRegistryTest {
             // Brightest at the border: the edge band is brighter than the outer fade and inside its radius.
             assertTrue(th.shadow.edgeAlpha in th.shadow.alpha..1f)
             assertTrue(th.shadow.edgeWidthDp > 0f && th.shadow.edgeWidthDp < th.shadow.radiusDp)
+            assertTrue(th.shadow.chamferDp > 0f)
         }
     }
 

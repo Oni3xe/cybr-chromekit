@@ -266,7 +266,10 @@ only token a theme may set to white; `gen_tokens.py` refuses white anywhere else
 brightest in a band right at each panel's border and fading outward (`hudPanel()` /
 `shadowGlow()`, drawn strokes, square); with glass on, panels also get a 1dp primary frame.
 `themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.45`, `radiusDp` `14`, `edgeAlpha` `0.9`,
-`edgeWidthDp` `2` (per-theme overrides allowed);
+`edgeWidthDp` `2`, `chamferDp` `10` (per-theme overrides allowed). With Shadow on, panels get
+straight 45° cuts on two opposite corners, top-start and bottom-end (`OpposingChamferShape`, like
+the OpSync tab cut; no rounding, so within the sharp-corner standard), and the band, glow and glass
+frame follow that outline. With Shadow off, panels keep today's single top-start chamfer;
 `CybrTheme.tokens.shadow` is non-null when on.
 
 With glass on, `CybrTheme.tokens.glass` is non-null, the surfaces are translucent, `hudPanel()`

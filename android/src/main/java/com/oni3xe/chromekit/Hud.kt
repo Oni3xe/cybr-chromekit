@@ -123,6 +123,41 @@ class ChamferShape(private val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
 }
 
 /**
+ * 45° cuts on two opposite corners, top-start and bottom-end (the Shadow panel cut, like the
+ * OpSync tab cut); the other two corners square. Straight lines, no rounding.
+ */
+class OpposingChamferShape(private val cut: Dp) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val c = with(density) { cut.toPx() }
+        val pts = opposingChamferOutline(size.width, size.height, c, 0f, layoutDirection == LayoutDirection.Ltr)
+        return Outline.Generic(polygonPath(pts))
+    }
+}
+
+/**
+ * The outline of a [w] x [h] box with 45° cuts of [cut] on the top-start and bottom-end corners,
+ * pushed outward by [inflate] (each edge moves out by [inflate]; a cut grows by inflate x (2 - √2) so
+ * the cut line stays parallel). Returns x,y pairs clockwise; 4 points when the cut is 0. Pure math.
+ */
+fun opposingChamferOutline(w: Float, h: Float, cut: Float, inflate: Float, ltr: Boolean): FloatArray {
+    val c0 = cut.coerceIn(0f, min(w, h) / 2)
+    val l = -inflate
+    val t = -inflate
+    val r = w + inflate
+    val b = h + inflate
+    if (c0 <= 0f) return floatArrayOf(l, t, r, t, r, b, l, b)
+    val c = c0 + inflate * (2f - kotlin.math.sqrt(2f))
+    return if (ltr) floatArrayOf(l + c, t, r, t, r, b - c, r - c, b, l, b, l, t + c)
+    else floatArrayOf(l, t, r - c, t, r, t + c, r, b, l + c, b, l, b - c)
+}
+
+private fun polygonPath(p: FloatArray) = Path().apply {
+    moveTo(p[0], p[1])
+    for (i in 2 until p.size step 2) lineTo(p[i], p[i + 1])
+    close()
+}
+
+/**
  * Reduce motion: the system animator duration scale is 0, or the in-app switch (the app provides it).
  * Disables the press step-off, panel steps and the scan bar sweep; keeps the press latch and haptic.
  */
@@ -494,41 +529,48 @@ fun Modifier.hudPanel(): Modifier = composed {
     val t = CybrTheme.tokens
     val g = t.glass
     val s = t.shadow
-    val outer = if (s == null) this else shadowGlow(t.colors.red, s.alpha, s.radiusDp.dp, s.edgeAlpha, s.edgeWidthDp.dp)
-    if (g == null) outer.clip(t.shapes.chamfer).background(t.colors.scrim).border(Px1, t.colors.redDim, t.shapes.chamfer)
-    else outer.glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp).clip(t.shapes.chamfer).background(t.colors.scrim)
+    // Shadow on: top-start + bottom-end 45° cuts, and the band, glow and frame follow that outline.
+    val cut = s?.chamferDp?.dp ?: 0.dp
+    val shape = if (s == null) t.shapes.chamfer else remember(cut) { OpposingChamferShape(cut) }
+    val outer = if (s == null) this else shadowGlow(t.colors.red, s.alpha, s.radiusDp.dp, s.edgeAlpha, s.edgeWidthDp.dp, cut = cut)
+    if (g == null) outer.clip(shape).background(t.colors.scrim).border(Px1, t.colors.redDim, shape)
+    else outer.glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp, cut = cut).clip(shape).background(t.colors.scrim)
         // With Shadow on, a 1dp primary frame so the glow reads as coming from the edge.
-        .border(Px1, if (s != null) t.colors.red else t.colors.text.copy(alpha = g.borderAlpha), t.shapes.chamfer)
+        .border(Px1, if (s != null) t.colors.red else t.colors.text.copy(alpha = g.borderAlpha), shape)
 }
 
 /**
  * Shadow: a bright band of [color] at [edgeAlpha] hugging the edge ([edgeWidth] wide, just outside
  * it), then [steps] strokes fading from [alpha] to 0 out to [radius]. Square, drawn behind.
  */
-fun Modifier.shadowGlow(color: Color, alpha: Float, radius: Dp, edgeAlpha: Float, edgeWidth: Dp, steps: Int = 6): Modifier =
+fun Modifier.shadowGlow(color: Color, alpha: Float, radius: Dp, edgeAlpha: Float, edgeWidth: Dp, steps: Int = 6, cut: Dp = 0.dp): Modifier =
     if ((alpha <= 0f || radius <= 0.dp) && (edgeAlpha <= 0f || edgeWidth <= 0.dp)) this else drawBehind {
         val e = edgeWidth.toPx()
         val r = radius.toPx()
+        val c = cut.toPx()
+        val ltr = layoutDirection == LayoutDirection.Ltr
         val band = (r - e).coerceAtLeast(0f) / steps
         for (i in steps downTo 1) {
-            val inner = e + band * (i - 1)
-            val off = inner + band / 2
-            drawRect(color.copy(alpha = alpha * (1f - (i - 1f) / steps)), Offset(-off, -off), Size(size.width + 2 * off, size.height + 2 * off), style = Stroke(band))
+            val off = e + band * (i - 1) + band / 2
+            drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, off, ltr)), color.copy(alpha = alpha * (1f - (i - 1f) / steps)), style = Stroke(band))
         }
         if (edgeAlpha > 0f && e > 0f) {
-            drawRect(color.copy(alpha = edgeAlpha), Offset(-e / 2, -e / 2), Size(size.width + e, size.height + e), style = Stroke(e))
+            drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, e / 2, ltr)), color.copy(alpha = edgeAlpha), style = Stroke(e))
         }
     }
 
 /**
- * Soft glow radiating outward from an element's edge: 3 square strokes of [color] fading out to
- * [radius] (used by glass and by Shadow). No-op at alpha 0. Never shadow().
+ * Soft glow radiating outward from an element's edge: 3 strokes of [color] fading out to [radius],
+ * square, or following the top-start/bottom-end [cut] outline (Shadow panels). No-op at alpha 0.
+ * Never shadow().
  */
-fun Modifier.glassGlow(color: Color, alpha: Float, radius: Dp): Modifier = if (alpha <= 0f || radius <= 0.dp) this else drawBehind {
+fun Modifier.glassGlow(color: Color, alpha: Float, radius: Dp, cut: Dp = 0.dp): Modifier = if (alpha <= 0f || radius <= 0.dp) this else drawBehind {
     val r = radius.toPx()
+    val c = cut.toPx()
+    val ltr = layoutDirection == LayoutDirection.Ltr
     for (i in 1..3) {
         val off = r * i / 3f
-        drawRect(color.copy(alpha = alpha / (i * 1.6f)), Offset(-off, -off), Size(size.width + 2 * off, size.height + 2 * off), style = Stroke(r / 3f))
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, off, ltr)), color.copy(alpha = alpha / (i * 1.6f)), style = Stroke(r / 3f))
     }
 }
 

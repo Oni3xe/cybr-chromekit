@@ -22,7 +22,8 @@
     "radiusDp": 14,
     "edgeAlpha": 0.9,
     "edgeWidthDp": 2,
-    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). Drawn strokes, never shadow()."
+    "chamferDp": 10,
+    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). chamferDp: with Shadow on, panels get straight 45\u00b0 cuts on two opposite corners (top-start and bottom-end, like the OpSync tab cut); the band, glow and glass frame follow the cut outline. Shadow off keeps today's corners. Drawn strokes, never shadow()."
   },
   "themes": [
     {
