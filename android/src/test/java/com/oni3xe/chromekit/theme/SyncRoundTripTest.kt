@@ -26,7 +26,10 @@ class SyncRoundTripTest {
         for (theme in ChromekitThemes.all.filter { ChromekitThemes.find(it.id) != null }) for (glass in listOf(true, false)) for (shadow in listOf(true, false))
             for (bg in BackgroundMode.entries) for (blur in BlurStyle.entries) for (wp in listOf(null, "custom_1", "red_glass")) {
                 val s = parse(ThemeSyncWire.row(theme.id, glass, shadow, wp, bg.value, blur))!!
-                assertEquals(SharedTheme(theme.id, glass, shadow, ThemeSyncWire.wallpaperUri(wp), bg, blur), s)
+                val uri = ThemeSyncWire.wallpaperUri(wp)
+                // DEFAULT with a served wallpaper renders it (#33)
+                val want = if (bg == BackgroundMode.DEFAULT && uri != null) BackgroundMode.IMPORT else bg
+                assertEquals(SharedTheme(theme.id, glass, shadow, uri, want, blur), s)
             }
     }
 

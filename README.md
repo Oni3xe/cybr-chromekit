@@ -331,7 +331,9 @@ recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red
   `content://com.oni3xe.cybrlauncher.chromekit.theme/wallpaper/<id>`, id 1-64 of `A-Za-z0-9_-`,
   served by the same provider's read-only `openFile`) and `background` (String, `BackgroundMode`:
   `none` = pure black, `theme` = the theme's `bg` tint, `default` = the theme's bundled wallpaper,
-  `import` = the user's own wallpaper via `wallpaper`; missing or unknown = `default`) and
+  `import` = the user's own wallpaper via `wallpaper`; missing or unknown = `default`; a `default`
+  row that names a `wallpaper` (the launcher's bundled theme wallpaper) parses to `IMPORT` on the
+  app side, so apps draw it like an imported photo) and
   `blur_style` (String, `plain` / `glass`; missing or unknown = `glass`). No insert/update/delete,
   no write mode. Both ends share one definition, `views/ThemeSyncWire` (the launcher builds its rows
   with `ThemeSyncWire.row`).

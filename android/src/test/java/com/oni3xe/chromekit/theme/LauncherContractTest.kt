@@ -75,4 +75,20 @@ class LauncherContractTest {
         assertNull(LauncherThemeContract.parse("red", 0, 0, 0, null, "theme"))
         assertNull(LauncherThemeContract.parse("bogus", 1, 0, 0, null, "theme"))
     }
+
+    @Test fun defaultWithASharedWallpaperRendersIt() {
+        val uri = "content://${LauncherThemeContract.AUTHORITY}/wallpaper/katana_tower"
+        val s = LauncherThemeContract.parse("red", 1, 1, 0, uri, "default")!!
+        assertEquals(BackgroundMode.IMPORT, s.background)
+        assertEquals(uri, s.wallpaperUri)
+        // No or an invalid URI: DEFAULT stays DEFAULT (and the bad URI is dropped)
+        assertEquals(BackgroundMode.DEFAULT, LauncherThemeContract.parse("red", 1, 1, 0, null, "default")!!.background)
+        val bad = LauncherThemeContract.parse("red", 1, 1, 0, "content://evil.example/wallpaper/katana_tower", "default")!!
+        assertEquals(BackgroundMode.DEFAULT, bad.background)
+        assertEquals(null, bad.wallpaperUri)
+        // Other modes are untouched
+        for (m in listOf("none", "theme", "import")) {
+            assertEquals(BackgroundMode.parse(m), LauncherThemeContract.parse("red", 1, 1, 0, uri, m)!!.background)
+        }
+    }
 }

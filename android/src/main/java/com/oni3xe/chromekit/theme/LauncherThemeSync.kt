@@ -59,15 +59,28 @@ object LauncherThemeContract {
     ): SharedTheme? {
         if (shared != 1L) return null
         val theme = ChromekitThemes.find(themeId) ?: return null
-        return SharedTheme(theme.id, glass == 1L, shadow == 1L, validWallpaper(wallpaper), BackgroundMode.parse(background),
+        val uri = validWallpaper(wallpaper)
+        return SharedTheme(theme.id, glass == 1L, shadow == 1L, uri, effectiveBackground(BackgroundMode.parse(background), uri),
             com.oni3xe.chromekit.views.BlurStyle.parse(blurStyle))
     }
+
+    /**
+     * What an app should draw for the launcher's [mode]. The launcher serves its bundled theme
+     * wallpaper through the same validated URI as an imported photo, so DEFAULT with a valid
+     * [wallpaperUri] resolves to [BackgroundMode.IMPORT]: "draw the launcher's shared image" (opened
+     * with the same trust re-check). Apps have no copy of the launcher's wallpapers, so without
+     * this they painted a flat colour (cybr-launcher #33). Without a valid URI DEFAULT stays DEFAULT.
+     */
+    fun effectiveBackground(mode: BackgroundMode, wallpaperUri: String?): BackgroundMode =
+        if (mode == BackgroundMode.DEFAULT && validWallpaper(wallpaperUri) != null) BackgroundMode.IMPORT else mode
 }
 
 /**
  * What an app draws behind its UI. [NONE]: pure black. [THEME]: the theme's `bg` (a very dark tint of
- * its main colour). [DEFAULT]: the theme's bundled wallpaper (over `bg`). [IMPORT]: the user's own
- * wallpaper, read through [SharedTheme.wallpaperUri]; without a usable one an app shows its default
+ * its main colour). [DEFAULT]: the theme's bundled wallpaper (over `bg`). [IMPORT]: the launcher's
+ * shared image, read through [SharedTheme.wallpaperUri]: the user's own photo, or the launcher's
+ * bundled theme wallpaper (a DEFAULT row with a wallpaper URI parses to IMPORT, see
+ * [LauncherThemeContract.effectiveBackground]); without a usable one an app shows its default
  * wallpaper instead.
  */
 enum class BackgroundMode(val value: String) {

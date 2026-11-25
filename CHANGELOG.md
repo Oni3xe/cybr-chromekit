@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Theme sync: a `default` background row with a valid `wallpaper` URI (the launcher's bundled theme
+  wallpaper, served through the same validated, trust-checked URI) parses to `BackgroundMode.IMPORT`
+  (`LauncherThemeContract.effectiveBackground`), so apps that draw the shared image for IMPORT now
+  show it instead of a flat colour (cybr-launcher #33). Wire, pinning and validation unchanged.
 - Glitch overlay (`views/Glitch.kt`, cybr-launcher only, not synced): `GlitchOverlayView`,
   `GlitchType` (scanlines / rgb / tear / blocks), `GlitchSpec` (strength 1-3, frequency 1-3, tinted), `GlitchMath`, `GlitchInk`. Tinted draws every
   mark in the main colour only at 1.8x alpha (max 0.45). First
