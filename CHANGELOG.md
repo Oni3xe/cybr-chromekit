@@ -4,8 +4,9 @@
 
 - Shadow (Oni3xe's device test): smooth, narrower and subtler. `shadowGlow()` / `hudPanel()` draw
   bands of at most 1px with a continuous alpha (`shadowBands()`: edge alpha easing into the outer
-  alpha, then a quadratic fade), instead of 6 visible steps. `themes.json` shadow: `alpha`
-  0.45 → 0.2, `radiusDp` 14 → 8, `edgeAlpha` 0.9 → 0.5, `edgeWidthDp` 2 → 1.
+  alpha, then a quadratic fade), instead of 6 visible steps: a thin, bright edge with a narrow
+  fade. `themes.json` shadow: `alpha` 0.45 → 0.3, `radiusDp` 14 → 8, `edgeAlpha` 0.9 (unchanged),
+  `edgeWidthDp` 2 → 1.
 - Fix: Shadow off drew a faint glow in glass mode (the glass glow on panels). Panels now draw no
   glow at all unless Shadow is on (`panelShadowBands()`, tested for every theme with glass on and
   off). The glass glow stays for key elements (`chromekitGlassGlow`).

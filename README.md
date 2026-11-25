@@ -281,13 +281,13 @@ and an app's `check.outlines` files, so every cut stays straight and paired.
 `menuPanel.chamfer`); the kit applies it to both corners, and the wording follows with the next
 design-vault tokens version (token values are unchanged).
 
-**Shadow**, off by default and independent of glass: a soft neon glow in the theme's primary
-colour, brightest at each panel's border and fading smoothly outward (`hudPanel()` /
+**Shadow**, off by default and independent of glass: a thin, bright neon edge in the theme's
+primary colour at each panel's border, fading smoothly outward (`hudPanel()` /
 `shadowGlow()`). It is drawn as bands of at most 1px whose alpha eases continuously
 (`shadowBands()`: `edgeAlpha` at the edge easing to `alpha` over `edgeWidthDp`, then a quadratic
 fade to 0 at `radiusDp`), so there are no visible steps. With Shadow on, panels get a 1dp primary
 frame. **Shadow off draws nothing at all**, glass or not (`panelShadowBands()` is empty; tested).
-`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.2`, `radiusDp` `8`, `edgeAlpha` `0.5`,
+`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.3`, `radiusDp` `8`, `edgeAlpha` `0.9`,
 `edgeWidthDp` `1` (per-theme overrides allowed); the glow follows the panel cut outline;
 `CybrTheme.tokens.shadow` is non-null when on.
 

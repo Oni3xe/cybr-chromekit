@@ -22,11 +22,11 @@
   },
   "shadow": {
     "enabled": false,
-    "alpha": 0.2,
+    "alpha": 0.3,
     "radiusDp": 8,
-    "edgeAlpha": 0.5,
+    "edgeAlpha": 0.9,
     "edgeWidthDp": 1,
-    "$comment": "Shadow: a soft neon glow in the theme's primary colour, brightest right at the panel border and fading smoothly outward. edgeAlpha/edgeWidthDp: the glow at the border, easing over edgeWidthDp into alpha; alpha/radiusDp: the outer fade, from alpha to 0 at radiusDp (quadratic ease). Drawn as bands of at most 1px (shadowBands), so there are no visible steps. Independent of glass; Shadow off draws nothing at all. With Shadow on, panels get a 1dp primary frame. The glow follows the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
+    "$comment": "Shadow: a thin, bright neon edge in the theme's primary colour right at the panel border, fading smoothly outward. edgeAlpha/edgeWidthDp: the glow at the border, easing over edgeWidthDp into alpha; alpha/radiusDp: the outer fade, from alpha to 0 at radiusDp (quadratic ease). Drawn as bands of at most 1px (shadowBands), so there are no visible steps. Independent of glass; Shadow off draws nothing at all. With Shadow on, panels get a 1dp primary frame. The glow follows the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
   },
   "themes": [
     {

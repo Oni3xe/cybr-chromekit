@@ -37,20 +37,21 @@ class ShadowBandsTest {
     }
 
     @Test fun alphaFadesSmoothlyFromTheEdgeToZero() {
-        val b = shadowBands(24f, 3f, 0.2f, 0.5f)
-        assertTrue(abs(b[2] - 0.5f) < 0.06f)
-        for (i in 5 until b.size step 3) {
-            assertTrue("never brighter outward", b[i] <= b[i - 3] + 1e-6f)
-            assertTrue("no jump between bands", b[i - 3] - b[i] < 0.11f)
-        }
+        // Bright thin edge (0.9 over 1dp at 3x), then the outer fade from 0.3 over 8dp
+        val b = shadowBands(24f, 3f, 0.3f, 0.9f)
+        assertTrue("the edge reads bright", b[2] > 0.75f)
+        for (i in 5 until b.size step 3) assertTrue("never brighter outward", b[i] <= b[i - 3] + 1e-6f)
+        // Past the edge band the fade has no visible step between bands
+        for (i in 3 * 4 + 2 until b.size step 3) assertTrue("no jump between bands", b[i - 3] - b[i] < 0.06f)
         assertTrue(b[b.size - 1] < 0.02f)
     }
 
-    @Test fun shadowTokensAreNarrowAndSubtle() {
+    @Test fun shadowTokensAreABrightThinEdgeWithANarrowFade() {
         for (th in ChromekitThemes.all) {
             assertTrue(th.id, th.shadow.radiusDp <= 8f)
-            assertTrue(th.id, th.shadow.alpha <= 0.25f)
-            assertTrue(th.id, th.shadow.edgeAlpha <= 0.6f)
+            assertTrue(th.id, th.shadow.edgeWidthDp <= 1f)
+            assertTrue(th.id, th.shadow.edgeAlpha >= 0.8f)
+            assertTrue(th.id, th.shadow.alpha <= 0.35f)
         }
     }
 }
