@@ -97,28 +97,23 @@ import kotlin.math.min
 /*
  * chromekit 1.1 shared Compose components (UI-Standard-v1.1 "States", "Action bar and menu",
  * "Components"): the press modifier with its latch, HudButton, HudActionBar with the [ ... ] overflow,
- * the menu panel, HudHeader, HudTab, HudTextField, HudRule, HudProgress and the chamfer shape.
+ * the menu panel, HudHeader, HudTab, HudTextField, HudRule, HudProgress and the chamfer shapes.
  * Every value comes from the generated Tokens. This is the only file allowed to use
  * `indication = null` (CI enforces it): the press visuals are drawn by the components themselves.
  */
 
 private val Px1 = Tokens.Shape.BORDER_DP.dp
 
-/** 45° chamfer on the top-start corner only ([cut] defaults to the 6dp token); every other corner square. */
-class ChamferShape(private val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
+/**
+ * The 6dp chamfer (tabs, menus, dialogs, toasts, the screen frame): straight 45° cuts of [cut] on two
+ * opposite corners, top-start and bottom-end, mirrored in RTL; the other corners square. Same
+ * outline as the panel cut ([OpposingChamferShape]), at the token size. chromekit has no
+ * single-corner cut.
+ */
+class ChamferShape(val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        val c = with(density) { cut.toPx() }.coerceAtMost(min(size.width, size.height) / 2)
-        val w = size.width
-        val h = size.height
-        val p = Path().apply {
-            if (layoutDirection == LayoutDirection.Ltr) {
-                moveTo(c, 0f); lineTo(w, 0f); lineTo(w, h); lineTo(0f, h); lineTo(0f, c)
-            } else {
-                moveTo(0f, 0f); lineTo(w - c, 0f); lineTo(w, c); lineTo(w, h); lineTo(0f, h)
-            }
-            close()
-        }
-        return Outline.Generic(p)
+        val c = with(density) { cut.toPx() }
+        return Outline.Generic(polygonPath(opposingChamferOutline(size.width, size.height, c, 0f, layoutDirection == LayoutDirection.Ltr)))
     }
 }
 
@@ -126,7 +121,7 @@ class ChamferShape(private val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
  * 45° cuts on two opposite corners, top-start and bottom-end (the panel cut in every theme, like
  * the OpSync tab cut); the other two corners square. Straight lines, no rounding.
  */
-class OpposingChamferShape(private val cut: Dp) : Shape {
+class OpposingChamferShape(val cut: Dp) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val c = with(density) { cut.toPx() }
         val pts = opposingChamferOutline(size.width, size.height, c, 0f, layoutDirection == LayoutDirection.Ltr)
@@ -137,7 +132,8 @@ class OpposingChamferShape(private val cut: Dp) : Shape {
 /**
  * The outline of a [w] x [h] box with 45° cuts of [cut] on the top-start and bottom-end corners,
  * pushed outward by [inflate] (each edge moves out by [inflate]; a cut grows by inflate x (2 - √2) so
- * the cut line stays parallel). Returns x,y pairs clockwise; 4 points when the cut is 0. Pure math.
+ * the cut line stays parallel; a negative [inflate] insets it). Returns x,y pairs clockwise; 4 points
+ * when the cut is 0. Pure math. Every chromekit cut outline comes from here.
  */
 fun opposingChamferOutline(w: Float, h: Float, cut: Float, inflate: Float, ltr: Boolean): FloatArray {
     val c0 = cut.coerceIn(0f, min(w, h) / 2)
@@ -149,6 +145,17 @@ fun opposingChamferOutline(w: Float, h: Float, cut: Float, inflate: Float, ltr: 
     val c = c0 + inflate * (2f - kotlin.math.sqrt(2f))
     return if (ltr) floatArrayOf(l + c, t, r, t, r, b - c, r - c, b, l, b, l, t + c)
     else floatArrayOf(l, t, r - c, t, r, t + c, r, b, l + c, b, l, b - c)
+}
+
+/**
+ * The two corner triangles a [w] x [h] box loses to the top-start and bottom-end cuts of [cut]
+ * (mirrored in RTL), as x,y triples: what [hudScreenFrame] paints with `bg`. Pure math.
+ */
+fun chamferCornerTriangles(w: Float, h: Float, cut: Float, ltr: Boolean): List<FloatArray> {
+    val c = cut.coerceIn(0f, min(w, h) / 2)
+    if (c <= 0f) return emptyList()
+    return if (ltr) listOf(floatArrayOf(0f, 0f, c, 0f, 0f, c), floatArrayOf(w, h, w, h - c, w - c, h))
+    else listOf(floatArrayOf(w, 0f, w - c, 0f, w, c), floatArrayOf(0f, h, 0f, h - c, c, h))
 }
 
 private fun polygonPath(p: FloatArray) = Path().apply {
@@ -374,7 +381,7 @@ fun HudActionBar(actions: List<HudAction>, menu: HudMenuState, modifier: Modifie
 /**
  * The menu panel of [HudActionBar]'s `[ ... ]`, drawn over the screen. Place it last in a Box that
  * fills the window (root coordinates). Anchored above the button, end edges aligned; >= 160dp wide;
- * chamfer; bg fill; 1dp red frame; 48dp rows with full names in red caps; red.deep dividers;
+ * 6dp chamfer (top-start + bottom-end); bg fill; 1dp red frame; 48dp rows with full names in red caps; red.deep dividers;
  * full-row press. Closes on selection, outside tap or back; opens and closes in 4 discrete steps
  * (panelOpenMs / panelCloseMs), instantly under reduce motion.
  */
@@ -468,7 +475,7 @@ fun HudHeader(modifier: Modifier = Modifier, title: @Composable RowScope.() -> U
     }
 }
 
-/** Tab: 80 x 36 visual, 48 touch, chamfer, caps label without brackets; selected = cyan on cyan.deep. */
+/** Tab: 80 x 36 visual, 48 touch, 6dp chamfer (top-start + bottom-end), caps label without brackets; selected = cyan on cyan.deep. */
 @Composable
 fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val t = CybrTheme.tokens
@@ -489,8 +496,9 @@ fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifie
 }
 
 /**
- * Screen frame: 1dp red.dim with the 6dp top-start chamfer, drawn over the content (the corner is
- * filled with bg). Drawn, not clipped, so no path clip is redrawn on every frame.
+ * Screen frame: 1dp red.dim with the 6dp chamfer on the top-start and bottom-end corners (mirrored
+ * in RTL), drawn over the content (the cut corners are filled with bg). Drawn, not clipped, so no
+ * path clip is redrawn on every frame.
  */
 fun Modifier.hudScreenFrame(): Modifier = composed {
     val t = CybrTheme.tokens
@@ -499,23 +507,9 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
         val b = Px1.toPx()
         val c = Tokens.Shape.CHAMFER_DP.dp.toPx()
         val ltr = layoutDirection == LayoutDirection.Ltr
-        val w = size.width
-        val h = size.height
-        val corner = Path().apply {
-            if (ltr) { moveTo(0f, 0f); lineTo(c, 0f); lineTo(0f, c) } else { moveTo(w, 0f); lineTo(w - c, 0f); lineTo(w, c) }
-            close()
-        }
-        drawPath(corner, t.colors.bg)
-        val frame = Path().apply {
-            val i = b / 2
-            if (ltr) {
-                moveTo(c, i); lineTo(w - i, i); lineTo(w - i, h - i); lineTo(i, h - i); lineTo(i, c)
-            } else {
-                moveTo(i, i); lineTo(w - c, i); lineTo(w - i, c); lineTo(w - i, h - i); lineTo(i, h - i)
-            }
-            close()
-        }
-        drawPath(frame, t.colors.redDim, style = Stroke(b))
+        chamferCornerTriangles(size.width, size.height, c, ltr).forEach { drawPath(polygonPath(it), t.colors.bg) }
+        // The stroke centre sits half a border inside the edge
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, -b / 2, ltr)), t.colors.redDim, style = Stroke(b))
     }
 }
 

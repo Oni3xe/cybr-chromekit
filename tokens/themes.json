@@ -9,7 +9,7 @@
   ],
   "panel": {
     "chamferDp": 10,
-    "$comment": "Panel shape in every theme, Shadow on or off: straight 45\u00b0 cuts of chamferDp on two opposite corners, top-start and bottom-end (mirrored in RTL); the other corners square. No rounding. Tabs, menus and the screen frame keep the single 6dp top-start chamfer from tokens.json."
+    "$comment": "Panel shape in every theme, Shadow on or off: straight 45\u00b0 cuts of chamferDp on two opposite corners, top-start and bottom-end (mirrored in RTL); the other corners square. No rounding. Tabs, menus, dialogs, toasts and the screen frame use the same two cuts at the 6dp chamfer size (tokens.json shape.chamfer.sizeDp); chromekit has no single-corner cut."
   },
   "glass": {
     "enabled": false,

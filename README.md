@@ -262,12 +262,24 @@ only token a theme may set to white; `gen_tokens.py` refuses white anywhere else
 | `glowAlpha` | `0.30` | soft primary-accent glow on panels and key elements (CHOPPER: `0.45`) |
 | `glowRadiusDp` | `10` | glow reach, drawn as strokes, never `shadow()` |
 
-**Panel shape (every theme):** panels (`hudPanel()`, `CybrTheme.tokens.shapes.panel`,
-`OpposingChamferShape`) have straight 45° cuts of 10dp on two opposite corners, top-start and
-bottom-end, mirrored in RTL; the other corners are square. This replaces the panels' single
-top-start cut. Tabs, menus and the screen frame keep the 6dp top-start chamfer. The size is
-`themes.json` `panel.chamferDp` (and `tokens.json` `shape.panelCut`). `check_standard.py` fails on
-curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD files, so the cuts stay straight.
+**Cut shape (every theme):** every cut corner comes in a pair: straight 45° cuts on two opposite
+corners, top-start and bottom-end, mirrored in RTL (top-right and bottom-left); the other corners
+are square. chromekit has no single-corner cut. Two sizes, unchanged:
+
+| size | where | shape |
+|---|---|---|
+| 6dp (`tokens.json` `shape.chamfer.sizeDp`) | tabs, menus, dialogs, toasts, the screen frame (`hudScreenFrame()`) | `CybrTheme.tokens.shapes.chamfer`, `ChamferShape` |
+| 10dp (`themes.json` `panel.chamferDp`, `tokens.json` `shape.panelCut`) | panels (`hudPanel()`) | `CybrTheme.tokens.shapes.panel`, `OpposingChamferShape` |
+
+Both are built from one outline, `opposingChamferOutline()` (pure math, also used for the Shadow
+band and glass glow, inflated so the cut stays parallel); `chamferCornerTriangles()` gives the two
+cut corners for drawn frames. Views apps build the same outline from their own corners array.
+`check_standard.py` fails on curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD
+files, and on hand-built paths (`moveTo` / `lineTo` with literal coordinates) in the shared HUD files
+and an app's `check.outlines` files, so every cut stays straight and paired.
+`tokens.json` still describes the 6dp chamfer as `top-start` (`shape.chamfer.corner`, `tab.chamfer`,
+`menuPanel.chamfer`); the kit applies it to both corners, and the wording follows with the next
+design-vault tokens version (token values are unchanged).
 
 **Shadow**, off by default and independent of glass: a neon glow in the theme's primary colour,
 brightest in a band right at each panel's border and fading outward (`hudPanel()` /

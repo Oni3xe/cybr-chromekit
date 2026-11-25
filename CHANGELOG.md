@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Double cut everywhere (Oni3xe): every element that had the single 6dp top-start chamfer (tabs,
+  menus, dialogs, toasts, the screen frame) gets the opposite bottom-end cut too, mirrored in RTL.
+  Sizes are unchanged: 6dp items stay 6dp, 10dp panels stay 10dp. `ChamferShape` (and so
+  `CybrShapes.chamfer`) and `hudScreenFrame()` now use the shared `opposingChamferOutline()`; new
+  `chamferCornerTriangles()` for drawn frames. No single-corner cut code is left in the kit.
+- `check_standard.py`: fails on hand-built paths (`moveTo` / `lineTo` with literal coordinates) in
+  the shared HUD files and in an app's optional `check.outlines` files (both profiles), so cut
+  outlines always come from the shared double-cut outline.
+- `render_palette_preview.py` draws tabs with the double cut. `themes.json` `panel.$comment`
+  updated (no palette change). `tokens.json` is untouched: its descriptive `top-start` wording for
+  the 6dp chamfer waits for the next design-vault tokens version.
+- Tests: the 6dp chamfer is the double cut in every theme; corner triangles; inset outlines.
+
 ## v1.2.0 (pending Oni3xe's palette approval; not tagged)
 
 - Tokens version 1.2.0 (`tokens.json`, `chromekit.version`, deprecated `cybrcore.version`); token

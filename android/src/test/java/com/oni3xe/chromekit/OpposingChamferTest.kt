@@ -37,4 +37,34 @@ class OpposingChamferTest {
         val p = opposingChamferOutline(40f, 20f, 50f, 0f, true)
         assertEquals(10f, p[0], eps)
     }
+
+    @Test fun negativeInflateInsetsTheOutlineAndKeepsTheCutParallel() {
+        // The screen frame strokes at half a border inside the edge
+        val p = opposingChamferOutline(100f, 50f, 6f, -0.5f, true)
+        assertEquals(0.5f, p[1], eps)
+        assertEquals(99.5f, p[2], eps)
+        val dist = ((p[0] + p[1]) - 6f) / sqrt(2f)
+        assertEquals(0.5f, dist, eps)
+        assertEquals(abs(p[4] - p[6]), abs(p[7] - p[5]), eps)
+    }
+
+    @Test fun cornerTrianglesAreTopStartAndBottomEnd() {
+        val ltr = chamferCornerTriangles(100f, 50f, 6f, true)
+        assertEquals(2, ltr.size)
+        assertArrayEquals(floatArrayOf(0f, 0f, 6f, 0f, 0f, 6f), ltr[0], eps)
+        assertArrayEquals(floatArrayOf(100f, 50f, 100f, 44f, 94f, 50f), ltr[1], eps)
+        val rtl = chamferCornerTriangles(100f, 50f, 6f, false)
+        assertArrayEquals(floatArrayOf(100f, 0f, 94f, 0f, 100f, 6f), rtl[0], eps)
+        assertArrayEquals(floatArrayOf(0f, 50f, 0f, 44f, 6f, 50f), rtl[1], eps)
+    }
+
+    @Test fun noCutHasNoCornerTriangles() {
+        assertEquals(0, chamferCornerTriangles(100f, 50f, 0f, true).size)
+    }
+
+    @Test fun theSixDpChamferMatchesTheTokenOnBothCorners() {
+        val c = Tokens.Shape.CHAMFER_DP
+        val p = opposingChamferOutline(80f, 36f, c, 0f, true)
+        assertArrayEquals(floatArrayOf(c, 0f, 80f, 0f, 80f, 36f - c, 80f - c, 36f, 0f, 36f, 0f, c), p, eps)
+    }
 }

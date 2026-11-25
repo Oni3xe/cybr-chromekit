@@ -101,6 +101,16 @@ class ThemeRegistryTest {
         }
     }
 
+    @Test fun theSixDpChamferIsTheDoubleCutToo() {
+        for (th in ChromekitThemes.all) {
+            for (tokens in listOf(th.tokens(false, false), th.tokens(true, true))) {
+                val shape = tokens.shapes.chamfer
+                assertTrue(th.id, shape is com.oni3xe.chromekit.ChamferShape)
+                assertEquals(th.id, com.oni3xe.chromekit.Tokens.Shape.CHAMFER_DP, (shape as com.oni3xe.chromekit.ChamferShape).cut.value, 0f)
+            }
+        }
+    }
+
     @Test fun onlyMochaIsLowContrast() {
         assertEquals(listOf("mocha"), ChromekitThemes.all.filter { it.lowContrast }.map { it.id })
     }
