@@ -19,10 +19,7 @@ import com.oni3xe.chromekit.views.ThemeSyncWire as W
  * - [COLUMN_BACKGROUND] (String): the background mode, one of [BackgroundMode.value] (`none`,
  *   `theme`, `default`, `import`). Missing or unknown = [BackgroundMode.DEFAULT];
  * - [COLUMN_BLUR_STYLE] (String): the glass blur style, `plain` or `glass`
- *   ([com.oni3xe.chromekit.views.BlurStyle]). Missing or unknown = glass (the default);
- * - [COLUMN_GLITCH] (Int 1/0), [COLUMN_GLITCH_TYPE] (String), [COLUMN_GLITCH_STRENGTH] (Int 1-3): the
- *   glitch overlay ([com.oni3xe.chromekit.views.GlitchSpec]). On only for exactly 1 with a known
- *   type; anything else is off. Strength is clamped to 1-3.
+ *   ([com.oni3xe.chromekit.views.BlurStyle]). Missing or unknown = glass (the default).
  * No insert, update, delete or write-mode openFile. No permission: the client pins the launcher's
  * package and signing cert instead.
  */
@@ -39,9 +36,6 @@ object LauncherThemeContract {
     const val COLUMN_WALLPAPER = W.COLUMN_WALLPAPER
     const val COLUMN_BACKGROUND = W.COLUMN_BACKGROUND
     const val COLUMN_BLUR_STYLE = W.COLUMN_BLUR_STYLE
-    const val COLUMN_GLITCH = W.COLUMN_GLITCH
-    const val COLUMN_GLITCH_TYPE = W.COLUMN_GLITCH_TYPE
-    const val COLUMN_GLITCH_STRENGTH = W.COLUMN_GLITCH_STRENGTH
 
     private val WALLPAPER = Regex("^content://${Regex.escape(AUTHORITY)}/$WALLPAPER_PATH/[A-Za-z0-9_-]{1,64}$")
 
@@ -62,13 +56,11 @@ object LauncherThemeContract {
     fun parse(
         themeId: String?, shared: Long?, glass: Long?, shadow: Long?, wallpaper: String?,
         background: String? = null, blurStyle: String? = null,
-        glitch: Long? = null, glitchType: String? = null, glitchStrength: Long? = null,
     ): SharedTheme? {
         if (shared != 1L) return null
         val theme = ChromekitThemes.find(themeId) ?: return null
         return SharedTheme(theme.id, glass == 1L, shadow == 1L, validWallpaper(wallpaper), BackgroundMode.parse(background),
-            com.oni3xe.chromekit.views.BlurStyle.parse(blurStyle),
-            com.oni3xe.chromekit.views.GlitchSpec.parse(glitch, glitchType, glitchStrength))
+            com.oni3xe.chromekit.views.BlurStyle.parse(blurStyle))
     }
 }
 
@@ -95,8 +87,6 @@ data class SharedTheme(
     val wallpaperUri: String?,
     val background: BackgroundMode = BackgroundMode.DEFAULT,
     val blurStyle: com.oni3xe.chromekit.views.BlurStyle = com.oni3xe.chromekit.views.BlurStyle.DEFAULT,
-    /** The launcher's glitch overlay, or null (off). */
-    val glitch: com.oni3xe.chromekit.views.GlitchSpec? = null,
 )
 
 /**
@@ -184,9 +174,6 @@ class LauncherThemeClient(
                     c.str(LauncherThemeContract.COLUMN_WALLPAPER),
                     c.str(LauncherThemeContract.COLUMN_BACKGROUND),
                     c.str(LauncherThemeContract.COLUMN_BLUR_STYLE),
-                    c.long(LauncherThemeContract.COLUMN_GLITCH),
-                    c.str(LauncherThemeContract.COLUMN_GLITCH_TYPE),
-                    c.long(LauncherThemeContract.COLUMN_GLITCH_STRENGTH),
                 )
             }
         }.getOrNull()

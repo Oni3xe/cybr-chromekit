@@ -1,6 +1,5 @@
 package com.oni3xe.chromekit.views
 
-import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -12,20 +11,20 @@ import android.view.View
 import kotlin.random.Random
 
 /*
- * chromekit glitch overlay: subtle, intermittent HUD glitches drawn over an app's UI in short bursts
- * on a timer. Framework-only (Views apps compile this folder in; Compose apps host the View with
- * AndroidView). Nothing is drawn or invalidated between bursts; it stops while not visible.
+ * chromekit glitch overlay (cybr-launcher only): short HUD glitch bursts drawn over the home screen
+ * on a timer. Framework-only; the launcher compiles this folder in. Nothing is drawn or invalidated
+ * between bursts, and it stops while not visible. Not part of theme sync.
  */
 
-/** The glitch look. Unknown or missing values parse to null (= off, fail closed). */
+/** The glitch look. Unknown or missing values parse to null. */
 enum class GlitchType(val value: String) {
-    /** A few faint horizontal scanlines sweeping through a band. */
+    /** A band of horizontal scanlines. */
     SCANLINES("scanlines"),
-    /** Thin slices with a primary/cyan offset fringe (chromatic shift). */
+    /** Slices with a primary/cyan offset fringe (chromatic shift). */
     RGB_SPLIT("rgb"),
     /** A brief dim flicker with one torn, offset band. */
     TEAR("tear"),
-    /** A few small noise blocks. */
+    /** Small noise blocks. */
     BLOCKS("blocks");
 
     companion object {
@@ -34,19 +33,9 @@ enum class GlitchType(val value: String) {
     }
 }
 
-/** On/type/strength together. [strength] is 1..3. */
+/** Type and strength together. [strength] is 1..3. */
 data class GlitchSpec(val type: GlitchType, val strength: Int) {
     init { require(strength in GlitchMath.MIN_STRENGTH..GlitchMath.MAX_STRENGTH) }
-
-    companion object {
-        /** From synced values: null (off) unless [enabled] is exactly 1 and the type is known; strength clamped. */
-        fun parse(enabled: Long?, type: String?, strength: Long?): GlitchSpec? {
-            if (enabled != 1L) return null
-            val t = GlitchType.parse(type) ?: return null
-            val s = (strength ?: GlitchMath.MIN_STRENGTH.toLong()).coerceIn(GlitchMath.MIN_STRENGTH.toLong(), GlitchMath.MAX_STRENGTH.toLong())
-            return GlitchSpec(t, s.toInt())
-        }
-    }
 }
 
 /** Timing and intensity, pure (unit tested). */
@@ -55,14 +44,20 @@ object GlitchMath {
     const val MAX_STRENGTH = 3
     /** Frame step inside a burst (about 20fps: a glitch should stutter, not animate smoothly). */
     const val FRAME_MS = 50L
+    /** The first burst after it's turned on or the screen comes back: soon enough to be noticed. */
+    const val FIRST_MIN_MS = 1_000L
+    const val FIRST_MAX_MS = 2_000L
 
-    private val GAP_MIN_MS = longArrayOf(14_000, 9_000, 6_000)
-    private val GAP_MAX_MS = longArrayOf(26_000, 17_000, 11_000)
-    private val BURST_MIN_MS = longArrayOf(90, 120, 150)
-    private val BURST_MAX_MS = longArrayOf(160, 220, 300)
-    private val ALPHA = floatArrayOf(0.06f, 0.10f, 0.15f)
+    private val GAP_MIN_MS = longArrayOf(7_000, 5_000, 3_000)
+    private val GAP_MAX_MS = longArrayOf(12_000, 9_000, 6_000)
+    private val BURST_MIN_MS = longArrayOf(160, 200, 260)
+    private val BURST_MAX_MS = longArrayOf(260, 320, 420)
+    private val ALPHA = floatArrayOf(0.14f, 0.20f, 0.28f)
 
     private fun i(strength: Int) = strength.coerceIn(MIN_STRENGTH, MAX_STRENGTH) - 1
+
+    /** Delay before the first burst once running. */
+    fun firstMs(rnd: Random): Long = rnd.nextLong(FIRST_MIN_MS, FIRST_MAX_MS + 1)
 
     /** Quiet time before the next burst. */
     fun gapMs(strength: Int, rnd: Random): Long = rnd.nextLong(GAP_MIN_MS[i(strength)], GAP_MAX_MS[i(strength)] + 1)
@@ -75,32 +70,34 @@ object GlitchMath {
 
     /** How many marks (lines, slices, blocks) per frame. */
     fun marks(type: GlitchType, strength: Int): Int = when (type) {
-        GlitchType.SCANLINES -> 3 + 2 * i(strength)
-        GlitchType.RGB_SPLIT -> 1 + i(strength)
+        GlitchType.SCANLINES -> 6 + 3 * i(strength)
+        GlitchType.RGB_SPLIT -> 2 + i(strength)
         GlitchType.TEAR -> 1
-        GlitchType.BLOCKS -> 3 + 2 * i(strength)
+        GlitchType.BLOCKS -> 5 + 3 * i(strength)
     }
 
     /** Share of the time spent bursting (battery bound): worst case burst max / gap min. */
     fun maxDutyCycle(strength: Int): Float = BURST_MAX_MS[i(strength)].toFloat() / GAP_MIN_MS[i(strength)]
 
     /**
-     * Reduced motion: animator duration scale 0 (developer option, and what "remove animations"
-     * sets), or animators disabled. Glitches are then off.
+     * Reduced motion, from the system's animator duration scale: 0 means "animator duration scale:
+     * off" (developer options) or "remove animations" (accessibility, which sets it to 0). Window
+     * and transition scales are NOT used (people turn those off for speed alone), and neither is
+     * battery saver.
      */
-    fun reduceMotion(context: Context): Boolean {
-        if (!ValueAnimator.areAnimatorsEnabled()) return true
-        val scale = runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }.getOrDefault(1f)
-        val transition = runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 1f) }.getOrDefault(1f)
-        return scale == 0f || transition == 0f
-    }
+    fun reducedMotion(animatorDurationScale: Float): Boolean = animatorDurationScale == 0f
+
+    fun reduceMotion(context: Context): Boolean = reducedMotion(
+        runCatching { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }.getOrDefault(1f)
+    )
 }
 
 /**
  * Full-screen, non-interactive overlay. Set [spec] (null = off) and [primary]/[secondary] (theme
  * colours: red, cyan). It idles with no drawing and no frame callbacks; a timer wakes it for a short
- * burst of a few frames, then sleeps again. It only runs while attached, shown and its window is
- * visible (so the screen being off or another app on top stops it), and never with reduced motion.
+ * burst of a few frames, then sleeps again. The first burst comes 1-2s after it starts running
+ * (turned on, shown again, back from another screen). It only runs while attached, shown and its
+ * window visible (screen off or another app on top stops it), and never with reduced motion.
  */
 class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
 
@@ -112,7 +109,9 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
     private val rnd = Random(SystemClock.uptimeMillis())
     private val paint = Paint()
     private var burstEnd = 0L
-    private var running = false
+    /** True while the timer is scheduled. */
+    var running = false
+        private set
 
     init {
         isClickable = false
@@ -149,10 +148,17 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
 
     private fun restart() {
         stop()
-        val s = spec ?: return
         if (!canRun()) return
         running = true
-        postDelayed(tick, GlitchMath.gapMs(s.strength, rnd) / 2)
+        postDelayed(tick, GlitchMath.firstMs(rnd))
+    }
+
+    /** A burst right now (settings preview after a change), then the normal rhythm. */
+    fun burstNow() {
+        stop()
+        if (!canRun()) return
+        running = true
+        post(tick)
     }
 
     override fun onAttachedToWindow() { super.onAttachedToWindow(); restart() }
@@ -176,18 +182,19 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
         val px = resources.displayMetrics.density
         when (s.type) {
             GlitchType.SCANLINES -> {
-                val bandTop = rnd.nextFloat() * h * 0.85f
-                val band = h * 0.15f
+                val band = h * 0.2f
+                val bandTop = rnd.nextFloat() * (h - band)
                 paint.color = primary; paint.alpha = a
-                repeat(n * 3) {
-                    val y = bandTop + rnd.nextFloat() * band
-                    canvas.drawRect(0f, y, w, y + px, paint)
+                val step = band / n
+                repeat(n) { k ->
+                    val y = bandTop + k * step + rnd.nextFloat() * step * 0.3f
+                    canvas.drawRect(0f, y, w, y + 2f * px, paint)
                 }
             }
             GlitchType.RGB_SPLIT -> repeat(n) {
                 val y = rnd.nextFloat() * h
-                val sh = (2f + rnd.nextFloat() * 6f) * px
-                val off = (2f + rnd.nextFloat() * 4f) * px
+                val sh = (3f + rnd.nextFloat() * 10f) * px
+                val off = (3f + rnd.nextFloat() * 6f) * px
                 paint.color = primary; paint.alpha = a
                 canvas.drawRect(-off, y, w - off, y + sh, paint)
                 paint.color = secondary; paint.alpha = a
@@ -197,17 +204,17 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
                 paint.color = Color.BLACK; paint.alpha = a / 2
                 canvas.drawRect(0f, 0f, w, h, paint) // flicker
                 val y = rnd.nextFloat() * h
-                val th = (6f + rnd.nextFloat() * 18f) * px
+                val th = (10f + rnd.nextFloat() * 24f) * px
                 paint.color = secondary; paint.alpha = a
-                canvas.drawRect((4f + rnd.nextFloat() * 10f) * px, y, w, y + th, paint)
+                canvas.drawRect((6f + rnd.nextFloat() * 14f) * px, y, w, y + th, paint)
                 paint.color = primary; paint.alpha = (a * 1.5f).toInt().coerceAtMost(255)
-                canvas.drawRect(0f, y, w, y + px, paint)
+                canvas.drawRect(0f, y, w, y + 2f * px, paint)
             }
             GlitchType.BLOCKS -> repeat(n) {
-                val bw = (8f + rnd.nextFloat() * 40f) * px
-                val bh = (4f + rnd.nextFloat() * 14f) * px
-                val x = rnd.nextFloat() * (w - bw)
-                val y = rnd.nextFloat() * (h - bh)
+                val bw = (12f + rnd.nextFloat() * 48f) * px
+                val bh = (6f + rnd.nextFloat() * 16f) * px
+                val x = rnd.nextFloat() * (w - bw).coerceAtLeast(1f)
+                val y = rnd.nextFloat() * (h - bh).coerceAtLeast(1f)
                 paint.color = if (rnd.nextBoolean()) primary else secondary; paint.alpha = a
                 canvas.drawRect(x, y, x + bw, y + bh, paint)
             }

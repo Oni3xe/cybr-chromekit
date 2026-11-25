@@ -19,7 +19,7 @@ class SyncRoundTripTest {
 
     @Test fun contractAliasesTheWire() {
         assertEquals("com.oni3xe.cybrlauncher.chromekit.theme", LauncherThemeContract.AUTHORITY)
-        assertArrayEquals(arrayOf("theme_id", "shared", "glass", "shadow", "wallpaper", "background", "blur_style", "glitch", "glitch_type", "glitch_strength"), ThemeSyncWire.COLUMNS)
+        assertArrayEquals(arrayOf("theme_id", "shared", "glass", "shadow", "wallpaper", "background", "blur_style"), ThemeSyncWire.COLUMNS)
     }
 
     @Test fun everyFieldRoundTrips() {

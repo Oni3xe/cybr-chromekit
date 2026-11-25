@@ -82,8 +82,6 @@ data class ResolvedTheme(
     /** The background mode: the launcher's while following it, else [BackgroundMode.DEFAULT]. */
     val background: BackgroundMode = BackgroundMode.DEFAULT,
     val blurStyle: com.oni3xe.chromekit.views.BlurStyle = com.oni3xe.chromekit.views.BlurStyle.DEFAULT,
-    /** The launcher's glitch overlay while following it, else null (apps have no local glitch setting). */
-    val glitch: com.oni3xe.chromekit.views.GlitchSpec? = null,
 ) {
     val tokens: CybrTokens get() = theme.tokens(glass, shadow, blurStyle)
 }
@@ -102,7 +100,7 @@ fun resolveTheme(
 ): ResolvedTheme =
     if (followLauncher && shared != null) {
         ResolvedTheme(ChromekitThemes.byId(shared.themeId), ThemeSource.Launcher, shared.glass, shared.shadow,
-            shared.wallpaperUri, shared.background, shared.blurStyle, shared.glitch)
+            shared.wallpaperUri, shared.background, shared.blurStyle)
     } else {
         ResolvedTheme(ChromekitThemes.byId(localThemeId), ThemeSource.Local, localGlass, localShadow, blurStyle = localBlurStyle)
     }

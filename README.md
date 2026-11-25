@@ -357,11 +357,6 @@ recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red
   grain and a light band on panel edges; `PLAIN` is the blur alone. Wrap the background layer in
   `Modifier.chromekitGlassBackground(CybrTheme.tokens)`; `hudPanel()` draws the band. Views apps:
   add `chromekit/android/src/views/java` as a source dir and use `GlassBlur`.
-- Glitch overlay: the launcher can share its glitch overlay (`glitch`, `glitch_type`,
-  `glitch_strength`; off unless exactly 1 with a known type). Apps following the launcher draw it
-  with `ChromekitGlitchOverlay(state.glitch)` as the last child of a full-screen Box; Views apps add
-  a `GlitchOverlayView` on top (`addContentView`). Bursts on a timer, idle in between, off with
-  reduced motion.
 - Release signing stays per app. The kit's manifest adds only a `<queries>` entry for the
   launcher's package (Android 11+ package visibility). No permissions, no INTERNET, no telemetry.
 

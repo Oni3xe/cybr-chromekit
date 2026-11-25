@@ -17,10 +17,6 @@ object ThemeSyncWire {
     const val COLUMN_WALLPAPER = "wallpaper"
     const val COLUMN_BACKGROUND = "background"
     const val COLUMN_BLUR_STYLE = "blur_style"
-    /** Glitch overlay: on only for exactly 1 with a known type (fail closed). */
-    const val COLUMN_GLITCH = "glitch"
-    const val COLUMN_GLITCH_TYPE = "glitch_type"
-    const val COLUMN_GLITCH_STRENGTH = "glitch_strength"
 
     /** Wallpaper ids: 1-64 of A-Z a-z 0-9 _ -. */
     val WALLPAPER_ID = Regex("^[A-Za-z0-9_-]{1,64}$")
@@ -28,7 +24,6 @@ object ThemeSyncWire {
     /** Column order of the one theme row. */
     val COLUMNS: Array<String> = arrayOf(
         COLUMN_THEME, COLUMN_SHARED, COLUMN_GLASS, COLUMN_SHADOW, COLUMN_WALLPAPER, COLUMN_BACKGROUND, COLUMN_BLUR_STYLE,
-        COLUMN_GLITCH, COLUMN_GLITCH_TYPE, COLUMN_GLITCH_STRENGTH,
     )
 
     /** `content://<AUTHORITY>/wallpaper/<id>`, or null for an invalid id. */
@@ -38,10 +33,6 @@ object ThemeSyncWire {
     fun unsharedRow(): Array<Any?> = arrayOfNulls<Any?>(COLUMNS.size).also { it[1] = 0 }
 
     /** The shared row, in [COLUMNS] order. [background] is a chromekit BackgroundMode value. */
-    fun row(
-        themeId: String, glass: Boolean, shadow: Boolean, wallpaperId: String?, background: String, blurStyle: BlurStyle,
-        glitch: GlitchSpec? = null,
-    ): Array<Any?> =
-        arrayOf(themeId, 1, if (glass) 1 else 0, if (shadow) 1 else 0, wallpaperUri(wallpaperId), background, blurStyle.value,
-            if (glitch != null) 1 else 0, glitch?.type?.value, glitch?.strength)
+    fun row(themeId: String, glass: Boolean, shadow: Boolean, wallpaperId: String?, background: String, blurStyle: BlurStyle): Array<Any?> =
+        arrayOf(themeId, 1, if (glass) 1 else 0, if (shadow) 1 else 0, wallpaperUri(wallpaperId), background, blurStyle.value)
 }
