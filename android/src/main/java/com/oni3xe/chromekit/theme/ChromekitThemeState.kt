@@ -52,6 +52,8 @@ class ChromekitThemeState internal constructor(
      * bg, DEFAULT the theme wallpaper, IMPORT [wallpaperUri]), else [BackgroundMode.DEFAULT].
      */
     val background: BackgroundMode get() = resolved.background
+    /** The launcher's glitch overlay while following it, else null; draw it with [ChromekitGlitchOverlay]. */
+    val glitch: com.oni3xe.chromekit.views.GlitchSpec? get() = resolved.glitch
 
     /** The launcher's validated wallpaper URI while following it, else null; open with [openSharedWallpaper]. */
     val wallpaperUri: String? get() = resolved.wallpaperUri

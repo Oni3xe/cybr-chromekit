@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Glitch overlay (`views/Glitch.kt`): `GlitchOverlayView` (Views) and `ChromekitGlitchOverlay(spec)`
+  (Compose, hosts the View). Types `scanlines`, `rgb` (chromatic shift), `tear` (flicker + torn
+  band), `blocks` (noise blocks); strength 1-3. Short bursts (90-300ms at ~20fps) after 6-26s quiet
+  gaps (at most 5% of the time drawing); no frames in between; stops while detached, hidden or its
+  window isn't visible (screen off, app in background); off with reduced motion (animator or
+  transition scale 0, animators disabled). Draws in the theme's red/cyan, never takes touches.
+  Timing and intensity in `GlitchMath` (tested).
+- Sync: `glitch` (1/0), `glitch_type`, `glitch_strength` columns; `SharedTheme.glitch`,
+  `ResolvedTheme.glitch`, `ChromekitThemeState.glitch` (launcher's, while following). Fail closed:
+  on only for exactly 1 with a known type; strength clamped to 1-3.
+
 - Theme sync, debug trust: `LAUNCHER_DEBUG_CERT_SHA256` (the box debug key, public) and an
   `allowDebug` parameter on `LauncherThemeClient`, `LauncherTrust.isTrusted`/`acceptedPins`,
   `ChromekitThemeState.get(context, allowDebug)` and `rememberChromekitThemeState(allowDebug)`. Apps
