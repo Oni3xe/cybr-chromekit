@@ -29,16 +29,23 @@ class ChromekitThemeState internal constructor(
     var localThemeId by mutableStateOf(settings.localThemeId); private set
     var followLauncher by mutableStateOf(settings.followLauncher); private set
     var shareToAllApps by mutableStateOf(settings.shareToAllApps); private set
-    var glass by mutableStateOf(settings.glass); private set
+    /** This app's own glass and Shadow toggles (the launcher's apply while following it). */
+    var localGlass by mutableStateOf(settings.glass); private set
+    var localShadow by mutableStateOf(settings.shadow); private set
 
-    /** The trusted launcher's shared theme id, or null. */
-    var sharedThemeId by mutableStateOf<String?>(null); private set
+    /** The trusted launcher's shared look (theme, glass, Shadow, wallpaper), or null. */
+    var shared by mutableStateOf<SharedTheme?>(null); private set
 
     /** True in the launcher itself: it shares its theme instead of following one. */
     val isLauncher: Boolean get() = client == null
 
-    val resolved: ResolvedTheme get() = resolveTheme(localThemeId, followLauncher && !isLauncher, sharedThemeId)
+    val resolved: ResolvedTheme get() = resolveTheme(localThemeId, followLauncher && !isLauncher, shared, localGlass, localShadow)
     val active: ChromekitThemeInfo get() = resolved.theme
+    val glass: Boolean get() = resolved.glass
+    val shadow: Boolean get() = resolved.shadow
+
+    /** The launcher's validated wallpaper URI while following it, else null; open with [openSharedWallpaper]. */
+    val wallpaperUri: String? get() = resolved.wallpaperUri
 
     /** True when the launcher's shared theme is in use ("Following launcher"). */
     val followingLauncher: Boolean get() = resolved.source == ThemeSource.Launcher
@@ -57,14 +64,35 @@ class ChromekitThemeState internal constructor(
         if (follow) refresh()
     }
 
-    /** Turns the glass variant on or off for this app (any theme). */
+    /** Turns glass on or off for this app (any theme); breaks away from the launcher like a theme pick. */
     fun useGlass(on: Boolean) {
+        if (followingLauncher) { keepLauncherLook(); useLauncherTheme(false) }
         settings.glass = on
-        glass = on
+        localGlass = on
+        if (isLauncher) notifyShared()
     }
 
-    /** The active token set, glass applied when on. */
-    val tokens: CybrTokens get() = active.tokens(glass)
+    /** Turns Shadow on or off for this app (independent of glass); breaks away like [useGlass]. */
+    fun useShadow(on: Boolean) {
+        if (followingLauncher) { keepLauncherLook(); useLauncherTheme(false) }
+        settings.shadow = on
+        localShadow = on
+        if (isLauncher) notifyShared()
+    }
+
+    /** Copies the launcher's current look into the local settings before breaking away, so only the toggled value changes. */
+    private fun keepLauncherLook() {
+        val r = resolved
+        settings.localThemeId = r.theme.id; localThemeId = r.theme.id
+        settings.glass = r.glass; localGlass = r.glass
+        settings.shadow = r.shadow; localShadow = r.shadow
+    }
+
+    /** The active token set, glass and Shadow applied when on. */
+    val tokens: CybrTokens get() = resolved.tokens
+
+    /** Opens the launcher's shared wallpaper (validated, trust re-checked), or null. Off the main thread. */
+    fun openSharedWallpaper(): java.io.InputStream? = client?.openWallpaper(wallpaperUri)
 
     /** Launcher only: the "Apply this theme to all cybr apps" checkbox, read by its provider. */
     fun shareWithAllApps(share: Boolean) {
@@ -83,8 +111,8 @@ class ChromekitThemeState internal constructor(
     fun refresh() {
         val c = client ?: return
         io.execute {
-            val id = c.readSharedThemeId()
-            main.post { sharedThemeId = id }
+            val s = c.readShared()
+            main.post { shared = s }
         }
     }
 

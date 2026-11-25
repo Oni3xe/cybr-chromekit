@@ -27,13 +27,12 @@ class ThemeRegistryTest {
         assertEquals("mocha", ChromekitThemes.byId("mocha").id)
     }
 
-    @Test fun everyThemeIsDarkNeverWhiteAndKeepsErrorFixed() {
+    @Test fun everyThemeIsDarkNeverWhiteAndKeepsAlertsFixed() {
         val white = Color(0xFFFFFFFFL)
         for (th in ChromekitThemes.all) {
             val c = th.tokens.colors
             listOf(c.bg, c.surface1, c.surface2, c.red, c.redBright, c.cyan, c.cyanBright, c.text).forEach { assertNotEquals(th.id, white, it) }
             assertTrue("${th.id} bg is dark", c.bg.red < 0.1f && c.bg.green < 0.1f && c.bg.blue < 0.1f)
-            assertEquals(th.id, ChromekitTokens.colors.error, c.error)
             assertEquals(th.id, ChromekitTokens.colors.warning, c.warning)
             assertEquals(th.id, ChromekitTokens.colors.green, c.green)
             assertEquals(th.id, ChromekitTokens.colors.gold, c.gold)
@@ -42,10 +41,37 @@ class ThemeRegistryTest {
         }
     }
 
-    @Test fun accentIsThemedAndRedKeepsTheMagenta() {
-        assertEquals(ChromekitTokens.colors.error, ChromekitTokens.colors.accent)
-        val accents = ChromekitThemes.all.map { it.tokens.colors.accent }
-        assertEquals(accents.size, accents.toSet().size)
+    @Test fun errorIsThemedKatanaKeepsTheMagentaAndOnlyErrorMayBeWhite() {
+        assertEquals(Color(0xFFFF2BD6L), ChromekitThemes.byId("red").tokens.colors.error)
+        val errors = ChromekitThemes.all.map { it.tokens.colors.error }
+        assertEquals(errors.size, errors.toSet().size)
+        assertEquals(Color(0xFFFFFFFFL), ChromekitThemes.byId("monochrome").tokens.colors.error)
+        for (th in ChromekitThemes.all) assertNotEquals(th.id, th.tokens.colors.red, th.tokens.colors.error)
+    }
+
+    @Test fun codeNamesWithStableIds() {
+        assertEquals(
+            listOf("KATANA", "PHANTOM", "EMBER", "ICEBREAKER", "SAKURA", "MATRIX", "NEON", "SODIUM", "GHOST", "NOMAD", "CHOPPER"),
+            ChromekitThemes.all.map { it.label },
+        )
+        assertEquals("KATANA · Red", ChromekitThemes.default.displayName)
+        assertEquals("CHOPPER · Noir", ChromekitThemes.byId("noir").displayName)
+    }
+
+    @Test fun shadowIsOffByDefaultAndIndependentOfGlass() {
+        assertEquals(false, ChromekitThemes.SHADOW_DEFAULT)
+        for (th in ChromekitThemes.all) {
+            assertEquals(null, th.tokens(false, false).shadow)
+            assertSame(th.tokens, th.tokens(false, false))
+            val s = th.tokens(false, true)
+            assertEquals(th.shadow, s.shadow)
+            assertEquals(null, s.glass)
+            assertEquals(th.tokens.colors, s.colors)
+            val both = th.tokens(true, true)
+            assertEquals(th.glass, both.glass)
+            assertEquals(th.shadow, both.shadow)
+            assertTrue(th.shadow.alpha in 0.01f..1f && th.shadow.radiusDp > 0f)
+        }
     }
 
     @Test fun glassIsOffByDefaultAndLayersOnAnyTheme() {

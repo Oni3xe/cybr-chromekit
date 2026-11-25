@@ -65,7 +65,7 @@ data class CybrColors(
     val disabled: Color,
     val green: Color,
     val gold: Color,
-    /** Errors only, always with `!!`. */
+    /** Errors only, always with `!!`. Themed per theme; the one token that may be white. */
     val error: Color,
     /**
      * Warnings (`!` prefix or CAPS). Stays the Red theme's red in every theme unless a theme sets its
@@ -73,8 +73,6 @@ data class CybrColors(
      * the secondary accent (see tokens/themes.json).
      */
     val warning: Color = Color(Tokens.Role.WARNING),
-    /** The special purple accent: the one themed colour next to the fixed alert colours. Red: the error magenta. */
-    val accent: Color = Color(Tokens.Color.ERROR),
 )
 
 @Immutable
@@ -121,6 +119,8 @@ data class CybrTokens(
     val shapes: CybrShapes,
     /** Non-null when the glass variant is on: translucent surfaces, light hairlines, glow, background blur. */
     val glass: GlassStyle? = null,
+    /** Non-null when Shadow is on: a subtle primary-colour glow outward from each panel edge. */
+    val shadow: ShadowStyle? = null,
 )
 
 val Rajdhani = FontFamily(

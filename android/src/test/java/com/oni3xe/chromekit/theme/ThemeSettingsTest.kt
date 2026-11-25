@@ -20,16 +20,18 @@ class ThemeSettingsTest {
         assertTrue(s.followLauncher)
         assertFalse(s.shareToAllApps)
         assertFalse(s.glass)
+        assertFalse(s.shadow)
     }
 
     @Test fun persistsAcrossInstances() {
         val prefs = MapPrefs()
-        ThemeSettings(prefs).apply { localThemeId = "cyan"; followLauncher = false; shareToAllApps = true; glass = true }
+        ThemeSettings(prefs).apply { localThemeId = "cyan"; followLauncher = false; shareToAllApps = true; glass = true; shadow = true }
         val s = ThemeSettings(prefs)
         assertEquals("cyan", s.localThemeId)
         assertFalse(s.followLauncher)
         assertTrue(s.shareToAllApps)
         assertTrue(s.glass)
+        assertTrue(s.shadow)
     }
 
     @Test fun unknownStoredIdReadsAsDefault() {
@@ -39,12 +41,23 @@ class ThemeSettingsTest {
         assertEquals("red", prefs.m[ThemeSettings.KEY_THEME])
     }
 
-    @Test fun resolveUsesSharedOnlyWhenFollowingAndKnown() {
-        assertEquals(ResolvedTheme(ChromekitThemes.byId("blue"), ThemeSource.Launcher), resolveTheme("green", true, "blue"))
-        assertEquals(ThemeSource.Local, resolveTheme("green", false, "blue").source)
-        assertEquals("green", resolveTheme("green", false, "blue").theme.id)
+    @Test fun resolveUsesTheLaunchersWholeLookOnlyWhenFollowing() {
+        val shared = SharedTheme("blue", glass = true, shadow = true, wallpaperUri = "content://com.oni3xe.cybrlauncher.chromekit.theme/wallpaper/w1")
+        val r = resolveTheme("green", true, shared, localGlass = false, localShadow = false)
+        assertEquals(ThemeSource.Launcher, r.source)
+        assertEquals("blue", r.theme.id)
+        assertTrue(r.glass && r.shadow)
+        assertEquals(shared.wallpaperUri, r.wallpaperUri)
+        assertEquals(r.theme.glass, r.tokens.glass)
+
+        val local = resolveTheme("green", false, shared, localGlass = false, localShadow = true)
+        assertEquals(ThemeSource.Local, local.source)
+        assertEquals("green", local.theme.id)
+        assertFalse(local.glass)
+        assertTrue(local.shadow)
+        assertEquals(null, local.wallpaperUri)
+
         assertEquals("green", resolveTheme("green", true, null).theme.id)
-        assertEquals("green", resolveTheme("green", true, "unknown").theme.id)
         assertEquals("red", resolveTheme(null, true, null).theme.id)
     }
 }

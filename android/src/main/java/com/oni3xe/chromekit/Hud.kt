@@ -487,17 +487,23 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
 /**
  * Panel over other content: scrim fill, 1dp red.dim frame, 6dp top-start chamfer. With glass on
  * (`CybrTheme.tokens.glass`), the fill is translucent, the frame a light hairline and a soft
- * primary-accent glow is drawn behind (strokes, never shadow()).
+ * primary-accent glow is drawn behind (strokes, never shadow()). With Shadow on
+ * (`CybrTheme.tokens.shadow`), a subtle primary-colour glow radiates outward from the edge.
  */
 fun Modifier.hudPanel(): Modifier = composed {
     val t = CybrTheme.tokens
     val g = t.glass
-    if (g == null) clip(t.shapes.chamfer).background(t.colors.scrim).border(Px1, t.colors.redDim, t.shapes.chamfer)
-    else glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp).clip(t.shapes.chamfer).background(t.colors.scrim)
+    val s = t.shadow
+    val outer = if (s == null) this else glassGlow(t.colors.red, s.alpha, s.radiusDp.dp)
+    if (g == null) outer.clip(t.shapes.chamfer).background(t.colors.scrim).border(Px1, t.colors.redDim, t.shapes.chamfer)
+    else outer.glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp).clip(t.shapes.chamfer).background(t.colors.scrim)
         .border(Px1, t.colors.text.copy(alpha = g.borderAlpha), t.shapes.chamfer)
 }
 
-/** Soft glow behind an element: 3 strokes of [color] fading out to [radius]. No-op at alpha 0. */
+/**
+ * Soft glow radiating outward from an element's edge: 3 square strokes of [color] fading out to
+ * [radius] (used by glass and by Shadow). No-op at alpha 0. Never shadow().
+ */
 fun Modifier.glassGlow(color: Color, alpha: Float, radius: Dp): Modifier = if (alpha <= 0f || radius <= 0.dp) this else drawBehind {
     val r = radius.toPx()
     for (i in 1..3) {

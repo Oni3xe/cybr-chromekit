@@ -1,9 +1,8 @@
 {
-  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' is the default and must override nothing, so it stays identical to tokens.json. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'accent' is the special purple accent, the only themed status-adjacent colour (defaults to the error magenta). The alert and status colours (error, warning, green, gold) are fixed: the generator refuses theme overrides. 'glass' holds the glass-variant defaults (glass is off unless the user turns it on); a theme may override any glass value.",
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and must override nothing, so it stays identical to tokens.json. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
   "version": 1,
   "default": "red",
   "fixed": [
-    "error",
     "warning",
     "green",
     "gold"
@@ -17,15 +16,23 @@
     "glowRadiusDp": 10,
     "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. border: the theme's text colour at borderAlpha (subtle light hairline). blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha, drawn as strokes out to glowRadiusDp."
   },
+  "shadow": {
+    "enabled": false,
+    "alpha": 0.28,
+    "radiusDp": 8,
+    "$comment": "Shadow: a subtle neon glow radiating outward from each panel's edge in the theme's primary colour (red), alpha fading to 0 at radiusDp. Independent of glass; drawn strokes, never shadow()."
+  },
   "themes": [
     {
       "id": "red",
-      "label": "Red",
+      "label": "KATANA",
+      "color": "Red",
       "colors": {}
     },
     {
       "id": "purple",
-      "label": "Purple",
+      "label": "PHANTOM",
+      "color": "Purple",
       "colors": {
         "red.bright": "#C9A6FF",
         "red": "#B07CFF",
@@ -37,12 +44,13 @@
         "cyan.deep": "#163025",
         "surface.1": "#09060D",
         "surface.2": "#120C1A",
-        "accent": "#FF6BE0"
+        "error": "#FF6BE0"
       }
     },
     {
       "id": "orange",
-      "label": "Orange",
+      "label": "EMBER",
+      "color": "Orange",
       "colors": {
         "red.bright": "#FFAF7B",
         "red": "#FF8A3D",
@@ -54,12 +62,13 @@
         "cyan.deep": "#142C38",
         "surface.1": "#0D0703",
         "surface.2": "#1A0E06",
-        "accent": "#C77DFF"
+        "error": "#C77DFF"
       }
     },
     {
       "id": "blue",
-      "label": "Blue",
+      "label": "ICEBREAKER",
+      "color": "Blue",
       "colors": {
         "red.bright": "#86C0FF",
         "red": "#4DA3FF",
@@ -71,12 +80,13 @@
         "cyan.deep": "#352514",
         "surface.1": "#04080D",
         "surface.2": "#08101A",
-        "accent": "#B98CFF"
+        "error": "#B98CFF"
       }
     },
     {
       "id": "pink",
-      "label": "Pink",
+      "label": "SAKURA",
+      "color": "Pink",
       "colors": {
         "red.bright": "#FF92CF",
         "red": "#FF5FB8",
@@ -88,12 +98,13 @@
         "cyan.deep": "#16302B",
         "surface.1": "#0D0509",
         "surface.2": "#1A0A12",
-        "accent": "#B57BFF"
+        "error": "#B57BFF"
       }
     },
     {
       "id": "green",
-      "label": "Green",
+      "label": "MATRIX",
+      "color": "Green",
       "colors": {
         "red.bright": "#8DECAF",
         "red": "#57E389",
@@ -105,12 +116,13 @@
         "cyan.deep": "#2C2038",
         "surface.1": "#040B07",
         "surface.2": "#09170E",
-        "accent": "#E07BFF"
+        "error": "#E07BFF"
       }
     },
     {
       "id": "cyan",
-      "label": "Cyan",
+      "label": "NEON",
+      "color": "Cyan",
       "colors": {
         "red.bright": "#74E3EE",
         "red": "#33D6E6",
@@ -122,12 +134,13 @@
         "cyan.deep": "#381B20",
         "surface.1": "#030B0C",
         "surface.2": "#051517",
-        "accent": "#C08CFF"
+        "error": "#C08CFF"
       }
     },
     {
       "id": "amber",
-      "label": "Amber",
+      "label": "SODIUM",
+      "color": "Amber",
       "colors": {
         "red.bright": "#FFCF74",
         "red": "#FFB833",
@@ -139,12 +152,13 @@
         "cyan.deep": "#182538",
         "surface.1": "#0D0903",
         "surface.2": "#1A1205",
-        "accent": "#D48CFF"
+        "error": "#D48CFF"
       }
     },
     {
       "id": "monochrome",
-      "label": "Monochrome",
+      "label": "GHOST",
+      "color": "Monochrome",
       "colors": {
         "red.bright": "#DADADA",
         "red": "#C8C8C8",
@@ -156,12 +170,13 @@
         "cyan.deep": "#1F2123",
         "surface.1": "#0A0A0A",
         "surface.2": "#141414",
-        "accent": "#C2B6DE"
+        "error": "#FFFFFF"
       }
     },
     {
       "id": "mocha",
-      "label": "Mocha",
+      "label": "NOMAD",
+      "color": "Mocha",
       "lowContrast": true,
       "colors": {
         "red.bright": "#D3B398",
@@ -178,12 +193,13 @@
         "text": "#A89F96",
         "text.muted": "#857C74",
         "disabled": "#4F4944",
-        "accent": "#B9A0C8"
+        "error": "#C9A0E0"
       }
     },
     {
       "id": "noir",
-      "label": "Noir",
+      "label": "CHOPPER",
+      "color": "Noir",
       "colors": {
         "bg": "#07090C",
         "surface.1": "#0E141A",
@@ -199,7 +215,7 @@
         "text": "#B4BBC3",
         "text.muted": "#7E8A92",
         "disabled": "#4A535A",
-        "accent": "#A98BB8"
+        "error": "#B48CFF"
       },
       "glass": {
         "glowAlpha": 0.45

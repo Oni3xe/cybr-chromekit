@@ -6,7 +6,8 @@ For palette review rounds; no Android build involved. Needs Pillow.
     python3 tools/render_palette_preview.py --out DIR --tag SHA
 
 writes DIR/regular-SHA.png (every theme, solid), DIR/glass-SHA.png (every theme with the glass
-variant over a painted dark teal fog) and DIR/themes-SHA.md. Images are drawn at 2x so they read
+variant over a painted dark teal fog), DIR/regular-shadow-SHA.png and DIR/glass-shadow-SHA.png (the
+same with Shadow on) and DIR/themes-SHA.md. Images are drawn at 2x so they read
 at phone size. Each theme shows its colour tokens with hex codes and a mini UI: clock, date, tabs,
 buttons, a list row and the alert lines.
 """
@@ -76,7 +77,8 @@ def fog(w: int, h: int) -> Image.Image:
     return img.filter(ImageFilter.GaussianBlur(40 * S // 2))
 
 
-def glow(img: Image.Image, box, colour: tuple, alpha: float, radius: float):
+def glow(img: Image.Image, box, colour: tuple, alpha: float, radius: float, outward: bool = False):
+    """A soft glow around box. outward=True (Shadow) keeps it outside the edge only."""
     if alpha <= 0 or radius <= 0:
         return
     pad = round(radius * S * 2)
@@ -84,13 +86,25 @@ def glow(img: Image.Image, box, colour: tuple, alpha: float, radius: float):
     layer = Image.new("RGBA", (x1 - x0 + 2 * pad, y1 - y0 + 2 * pad), (0, 0, 0, 0))
     ImageDraw.Draw(layer).rectangle((pad, pad, pad + x1 - x0, pad + y1 - y0), outline=colour[:3] + (round(255 * alpha),), width=round(radius * S / 2))
     layer = layer.filter(ImageFilter.GaussianBlur(radius * S / 2))
+    if outward:
+        ImageDraw.Draw(layer).rectangle((pad, pad, pad + x1 - x0, pad + y1 - y0), fill=(0, 0, 0, 0))
     img.alpha_composite(layer, (x0 - pad, y0 - pad))
 
 
-def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool):
+def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool, shadow: bool):
     c = {k: rgba(v) for k, v in p.items() if not k.startswith("_")}
     g = p["_glass"]
     x0, y0, x1, y1 = sc(ox, oy, ox + CARD_W, oy + CARD_H)
+    if shadow:  # Shadow: as hudPanel draws it, 3 strokes of the primary colour stepping outward, fading
+        sh = p["_shadow"]
+        r = sh["radiusDp"] * S
+        layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ld = ImageDraw.Draw(layer)
+        for i in (1, 2, 3):
+            off = r * i / 3
+            ld.rectangle((x0 - off, y0 - off, x1 + off, y1 + off), outline=c["red"][:3] + (round(255 * sh["alpha"] / (i * 1.6)),),
+                         width=max(1, round(r / 3)))
+        img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(S)))
     if glass:
         region = img.crop((x0, y0, x1, y1)).filter(ImageFilter.GaussianBlur(g["blurRadiusDp"] * S / 2))
         img.paste(region, (x0, y0))
@@ -102,8 +116,7 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool):
         img.alpha_composite(over)
     else:
         d = ImageDraw.Draw(img, "RGBA")
-        d.rectangle((x0, y0, x1, y1), fill=c["bg"])
-        d.polygon(chamfer(ox + 6, oy + 6, ox + CARD_W - 6, oy + CARD_H - 6, 10), fill=c["surface.1"], outline=c["red.dim"], width=S)
+        d.polygon(chamfer(ox, oy, ox + CARD_W, oy + CARD_H, 10), fill=c["surface.1"], outline=c["red.dim"], width=S)
     # Everything else is drawn on an overlay so translucent strokes blend; glows go straight onto img, behind.
     ov = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(ov)
@@ -111,9 +124,9 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool):
     def text(x, y, s, f, col, anchor="la"):
         d.text(tuple(sc(ox + x, oy + y)), s, font=f, fill=col, anchor=anchor)
 
-    name = th["label"].upper() + (" · DEFAULT" if th["id"] == "red" else "") + (" · LOW CONTRAST" if th.get("lowContrast") else "")
+    name = f"{th['label']} · {th['color']}" + (" · default" if th["id"] == "red" else "") + (" · low contrast" if th.get("lowContrast") else "")
     text(18, 14, "// " + name, font("rajdhani_bold.ttf", 18), c["red"])
-    text(CARD_W - 18, 18, "GLASS" if glass else "SOLID", font("jetbrains_mono_regular.ttf", 10), c["cyan"], "ra")
+    text(CARD_W - 18, 18, ("GLASS" if glass else "SOLID") + (" + SHADOW" if shadow else ""), font("jetbrains_mono_regular.ttf", 10), c["cyan"], "ra")
     # Swatches with key and hex.
     for i, key in enumerate(KEYS):
         col, row = i % SW_COLS, i // SW_COLS
@@ -164,22 +177,21 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool):
     f = font("rajdhani_semibold.ttf", 14)
     text(18, ay, "! LOW BATTERY", f, c["warning"])
     text(150, ay, "!! SIGNAL LOST", f, c["error"])
-    text(290, ay, "OK", f, c["green"])
-    text(330, ay, "* SPECIAL", f, c["gold"])
-    text(440, ay, "+ ACCENT", f, c["accent"])
+    text(300, ay, "OK", f, c["green"])
+    text(350, ay, "* SPECIAL", f, c["gold"])
     text(18, ay + 22, "Body text: wake up at 07:30, route ready.", font("rajdhani_medium.ttf", 14), c["text"])
     img.alpha_composite(ov)
 
 
-def render(themes, out: Path, glass: bool):
+def render(themes, out: Path, glass: bool, shadow: bool):
     rows = (len(themes) + COLS - 1) // COLS
     w, h = PAD + COLS * (CARD_W + PAD), PAD + 40 + rows * (CARD_H + PAD)
     img = fog(w * S, h * S).convert("RGBA") if glass else Image.new("RGBA", (w * S, h * S), (0, 0, 0, 255))
     d = ImageDraw.Draw(img, "RGBA")
-    title = "CHROMEKIT THEMES · " + ("GLASS VARIANT (painted fog background)" if glass else "REGULAR")
+    title = "CHROMEKIT THEMES · " + ("GLASS (painted fog background)" if glass else "REGULAR") + (" + SHADOW" if shadow else "")
     d.text(tuple(sc(PAD, PAD)), title, font=font("rajdhani_bold.ttf", 22), fill=(184, 179, 182))
     for i, (th, p) in enumerate(themes):
-        card(img, PAD + (i % COLS) * (CARD_W + PAD), PAD + 40 + (i // COLS) * (CARD_H + PAD), th, p, glass)
+        card(img, PAD + (i % COLS) * (CARD_W + PAD), PAD + 40 + (i // COLS) * (CARD_H + PAD), th, p, glass, shadow)
     out.parent.mkdir(parents=True, exist_ok=True)
     img.convert("RGB").save(out)
     print(f"wrote {out}")
@@ -189,9 +201,9 @@ def markdown(themes, label: str) -> str:
     doc = json.loads(THEMES.read_text())
     md = [f"# chromekit theme palettes ({label})", "",
           "Generated by `tools/render_palette_preview.py` from `tokens/themes.json` over `tokens/tokens.json`.",
-          "`red.*` = primary accent, `cyan.*` = secondary accent, `accent` = special purple accent (themed).",
+          "`red.*` = primary accent, `cyan.*` = secondary accent, `error` = themed per theme (the only token that may be white).",
           f"Fixed in every theme: {', '.join('`' + k + '`' for k in doc.get('fixed', []))}.", ""]
-    md.append("| token | " + " | ".join(th["label"] for th, _ in themes) + " |")
+    md.append("| token | " + " | ".join(f"{th['label']} · {th['color']} (`{th['id']}`)" for th, _ in themes) + " |")
     md.append("|---|" + "---|" * len(themes))
     for key in KEYS:
         md.append(f"| `{key}` | " + " | ".join(f"`{p[key].upper()}`" for _, p in themes) + " |")
@@ -199,6 +211,10 @@ def markdown(themes, label: str) -> str:
            "|---|" + "---|" * len(themes[0][1]["_glass"])]
     for th, p in themes:
         md.append(f"| {th['label']} | " + " | ".join(str(v) for v in p["_glass"].values()) + " |")
+    md += ["", "## Shadow (off by default, independent of glass)", "", "| theme | " + " | ".join(themes[0][1]["_shadow"]) + " |",
+           "|---|" + "---|" * len(themes[0][1]["_shadow"])]
+    for th, p in themes:
+        md.append(f"| {th['label']} | " + " | ".join(str(v) for v in p["_shadow"].values()) + " |")
     return "\n".join(md) + "\n"
 
 
@@ -210,8 +226,10 @@ def main():
     t = json.loads(TOKENS.read_text())
     _, themes = resolve_themes(t["color"], t["role"])
     out = Path(a.out)
-    render(themes, out / f"regular-{a.tag}.png", glass=False)
-    render(themes, out / f"glass-{a.tag}.png", glass=True)
+    for glass in (False, True):
+        for shadow in (False, True):
+            name = ("glass" if glass else "regular") + ("-shadow" if shadow else "")
+            render(themes, out / f"{name}-{a.tag}.png", glass=glass, shadow=shadow)
     (out / f"themes-{a.tag}.md").write_text(markdown(themes, a.tag))
     print(f"wrote {out / f'themes-{a.tag}.md'}")
 

@@ -58,6 +58,7 @@ fun ChromekitCustomizationScreen(
                 ThemeSyncControls(state)
                 ChromekitThemePicker(state)
                 ChromekitToggleRow("Glass panels (blurred background on Android 12+)", state.glass) { state.useGlass(it) }
+                ChromekitToggleRow("Shadow (neon glow around panels)", state.shadow) { state.useShadow(it) }
             }
             appOptions()
         }
@@ -96,7 +97,7 @@ fun ChromekitToggleRow(label: String, checked: Boolean, modifier: Modifier = Mod
 private fun ThemeSyncControls(state: ChromekitThemeState) {
     val t = CybrTheme.tokens
     when {
-        state.isLauncher -> ChromekitToggleRow("Apply this theme to all cybr apps", state.shareToAllApps) {
+        state.isLauncher -> ChromekitToggleRow("Apply this theme to all cybr apps (theme, glass, shadow, wallpaper)", state.shareToAllApps) {
             state.shareWithAllApps(it)
         }
         state.followingLauncher -> Row(
@@ -104,7 +105,7 @@ private fun ThemeSyncControls(state: ChromekitThemeState) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(t.spacing.l),
         ) {
-            Text("Following launcher: ${state.active.label}".uppercase(), style = t.type.label, color = t.colors.cyan, modifier = Modifier.weight(1f))
+            Text("Following launcher: ${state.active.displayName}".uppercase(), style = t.type.label, color = t.colors.cyan, modifier = Modifier.weight(1f))
             HudButton("Use local", onClick = { state.useLauncherTheme(false) })
         }
         else -> ChromekitToggleRow("Follow the launcher's theme when it shares one", state.followLauncher) {
@@ -131,7 +132,7 @@ fun ChromekitThemePicker(state: ChromekitThemeState = rememberChromekitThemeStat
                     .background(if (selected) t.colors.cyanDeep else t.colors.surface1)
                     .border(Tokens.Shape.BORDER_DP.dp, if (selected) t.colors.cyan else t.colors.redDim)
                     .padding(horizontal = t.spacing.l)
-                    .semantics { this.selected = selected; contentDescription = "${theme.label} theme" },
+                    .semantics { this.selected = selected; contentDescription = "${theme.displayName} theme" },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(t.spacing.l),
             ) {
@@ -139,7 +140,7 @@ fun ChromekitThemePicker(state: ChromekitThemeState = rememberChromekitThemeStat
                     listOf(c.surface2, c.red, c.redDim, c.cyan).forEach { Box(Modifier.size(16.dp).background(it)) }
                 }
                 Text(
-                    theme.label.uppercase() + if (theme.lowContrast) " · LOW CONTRAST" else "",
+                    theme.displayName.uppercase() + if (theme.lowContrast) " · LOW CONTRAST" else "",
                     style = t.type.label, color = if (selected) t.colors.cyan else t.colors.red, modifier = Modifier.weight(1f),
                 )
                 if (selected) Text("ACTIVE", style = t.type.data, color = t.colors.cyan)

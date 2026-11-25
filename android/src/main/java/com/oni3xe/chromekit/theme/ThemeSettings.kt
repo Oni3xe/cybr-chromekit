@@ -27,8 +27,9 @@ class SharedPreferencesThemePrefs(private val prefs: SharedPreferences) : ThemeP
 /**
  * Persisted theme choices. [localThemeId] is this app's own theme; [followLauncher] (default on)
  * uses the trusted launcher's shared theme when there is one; [shareToAllApps] (default off) is the
- * launcher's "Apply this theme to all cybr apps" checkbox; [glass] (default off) layers the glass
- * variant on whichever theme is active (local to each app). Unknown stored ids read as the default.
+ * launcher's "Apply this theme to all cybr apps" checkbox (shares theme, glass, Shadow and wallpaper);
+ * [glass] and [shadow] (both default off) are independent toggles layered on whichever theme is
+ * active. Unknown stored ids read as the default.
  */
 class ThemeSettings(private val prefs: ThemePrefs) {
     var localThemeId: String
@@ -43,6 +44,10 @@ class ThemeSettings(private val prefs: ThemePrefs) {
         get() = prefs.getBoolean(KEY_GLASS, ChromekitThemes.GLASS_DEFAULT)
         set(value) = prefs.put(KEY_GLASS, value)
 
+    var shadow: Boolean
+        get() = prefs.getBoolean(KEY_SHADOW, ChromekitThemes.SHADOW_DEFAULT)
+        set(value) = prefs.put(KEY_SHADOW, value)
+
     var shareToAllApps: Boolean
         get() = prefs.getBoolean(KEY_SHARE, false)
         set(value) = prefs.put(KEY_SHARE, value)
@@ -52,19 +57,39 @@ class ThemeSettings(private val prefs: ThemePrefs) {
         const val KEY_FOLLOW = "follow_launcher"
         const val KEY_SHARE = "share_to_all_apps"
         const val KEY_GLASS = "glass"
+        const val KEY_SHADOW = "shadow"
     }
 }
 
 enum class ThemeSource { Local, Launcher }
 
-data class ResolvedTheme(val theme: ChromekitThemeInfo, val source: ThemeSource)
+/**
+ * The active look: theme, the glass and Shadow toggles, and (only when following the launcher) the
+ * launcher's validated wallpaper reference.
+ */
+data class ResolvedTheme(
+    val theme: ChromekitThemeInfo,
+    val source: ThemeSource,
+    val glass: Boolean = false,
+    val shadow: Boolean = false,
+    val wallpaperUri: String? = null,
+) {
+    val tokens: CybrTokens get() = theme.tokens(glass, shadow)
+}
 
 /**
- * Picks the active theme. The launcher's shared theme wins only when this app follows the launcher
- * and [sharedThemeId] came from a trusted launcher and names a known theme; otherwise the local one.
+ * Picks the active look. The launcher's [shared] look (theme + glass + Shadow + wallpaper) wins only
+ * when this app follows the launcher and it came from a trusted launcher; otherwise the local choice.
  */
-fun resolveTheme(localThemeId: String?, followLauncher: Boolean, sharedThemeId: String?): ResolvedTheme {
-    val shared = if (followLauncher) ChromekitThemes.find(sharedThemeId) else null
-    return if (shared != null) ResolvedTheme(shared, ThemeSource.Launcher)
-    else ResolvedTheme(ChromekitThemes.byId(localThemeId), ThemeSource.Local)
-}
+fun resolveTheme(
+    localThemeId: String?,
+    followLauncher: Boolean,
+    shared: SharedTheme?,
+    localGlass: Boolean = false,
+    localShadow: Boolean = false,
+): ResolvedTheme =
+    if (followLauncher && shared != null) {
+        ResolvedTheme(ChromekitThemes.byId(shared.themeId), ThemeSource.Launcher, shared.glass, shared.shadow, shared.wallpaperUri)
+    } else {
+        ResolvedTheme(ChromekitThemes.byId(localThemeId), ThemeSource.Local, localGlass, localShadow)
+    }

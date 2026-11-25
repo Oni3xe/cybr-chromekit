@@ -213,9 +213,11 @@ THEME_FIELDS = [("bg", "bg"), ("surface1", "surface.1"), ("surface2", "surface.2
                 ("redBright", "red.bright"), ("red", "red"), ("redDim", "red.dim"), ("redDeep", "red.deep"),
                 ("cyanBright", "cyan.bright"), ("cyan", "cyan"), ("cyanDim", "cyan.dim"), ("cyanDeep", "cyan.deep"),
                 ("text", "text"), ("textMuted", "text.muted"), ("disabled", "disabled"),
-                ("green", "green"), ("gold", "gold"), ("error", "error"), ("warning", "warning"),
-                ("accent", "accent")]
+                ("green", "green"), ("gold", "gold"), ("error", "error"), ("warning", "warning")]
+# The only colour key a theme may set to white: the error colour (Oni3xe's explicit exception).
+WHITE_OK = {"error"}
 # GlassStyle fields: (themes.json key, Kotlin field, Kotlin type).
+SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp")]
 GLASS_FIELDS = [("surfaceAlpha", "surfaceAlpha", "f"), ("borderAlpha", "borderAlpha", "f"),
                 ("blurRadiusDp", "blurRadiusDp", "f"), ("glowAlpha", "glowAlpha", "f"), ("glowRadiusDp", "glowRadiusDp", "f")]
 
@@ -224,15 +226,15 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
     """Return (themes.json document, [(theme, {key: hex})]) with every theme fully resolved.
 
     A theme overrides tokens.json colour keys; anything it leaves out comes from tokens.json.
-    "warning" defaults to the tokens' warning role colour (the Red theme's red) and "accent" (the
-    special purple accent) to the error magenta. The keys in "fixed" (alert and status colours) can't
-    be overridden. Each theme also gets its resolved "glass" style under the key "_glass"."""
+    "warning" defaults to the tokens' warning role colour (the Red theme's red). The keys in "fixed"
+    (warning, ok, gold) can't be overridden; "error" is themed and may be white. Each theme also gets
+    its resolved "glass" and "shadow" styles under the keys "_glass" and "_shadow"."""
     doc = json.loads(THEMES.read_text())
     base = dict(colors)
     base["warning"] = colors[roles["warning"]]
-    base["accent"] = colors["error"]
     fixed = set(doc.get("fixed", []))
     glass = {k: v for k, v in doc.get("glass", {}).items() if not k.startswith("$")}
+    shadow = {k: v for k, v in doc.get("shadow", {}).items() if not k.startswith("$")}
     seen, out = set(), []
     for th in doc["themes"]:
         tid = th["id"]
@@ -247,14 +249,21 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
             raise SystemExit(f"themes.json: theme {tid} overrides fixed alert colours {sorted(locked)}")
         pal = {**base, **th.get("colors", {})}
         for key, v in pal.items():
-            if argb(v)[2:] == "FFFFFF":
-                raise SystemExit(f"themes.json: theme {tid} {key} is white; chromekit never uses white")
+            if argb(v)[2:] == "FFFFFF" and key not in WHITE_OK:
+                raise SystemExit(f"themes.json: theme {tid} {key} is white; chromekit never uses white (only error may)")
         g = {**glass, **th.get("glass", {})}
         for key, _, _ in GLASS_FIELDS:
             v = g.get(key)
             if not isinstance(v, (int, float)) or v < 0 or (key.endswith("Alpha") and v > 1):
                 raise SystemExit(f"themes.json: theme {tid} glass {key} must be a number (alphas 0..1)")
-        out.append((th, {**pal, "_glass": g}))
+        sh = {**shadow, **th.get("shadow", {})}
+        for key, _ in SHADOW_FIELDS:
+            v = sh.get(key)
+            if not isinstance(v, (int, float)) or v < 0 or (key == "alpha" and v > 1):
+                raise SystemExit(f"themes.json: theme {tid} shadow {key} must be a number (alpha 0..1)")
+        if not th.get("label") or not th.get("color"):
+            raise SystemExit(f"themes.json: theme {tid} needs a code-name \"label\" and a \"color\"")
+        out.append((th, {**pal, "_glass": g, "_shadow": sh}))
     if doc.get("default") not in seen:
         raise SystemExit("themes.json: \"default\" must name a theme")
     first = doc["themes"][0]
@@ -272,15 +281,18 @@ def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin:
          "/** Theme palettes as ARGB longs, in picker order. Edit tokens/themes.json, then regenerate. */",
          "internal object GeneratedThemes {",
          f"    const val DEFAULT_ID = \"{doc['default']}\"",
-         f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}", "",
+         f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}",
+         f"    const val SHADOW_DEFAULT = {str(bool(doc.get('shadow', {}).get('enabled', False))).lower()}", "",
          "    val ALL: List<ThemePalette> = listOf("]
     for th, pal in themes:
         k.append(f"        ThemePalette(")
-        k.append(f"            id = \"{th['id']}\", label = \"{th['label']}\", lowContrast = {str(bool(th.get('lowContrast'))).lower()},")
+        k.append(f"            id = \"{th['id']}\", label = \"{th['label']}\", colorName = \"{th['color']}\", lowContrast = {str(bool(th.get('lowContrast'))).lower()},")
         for field, key in THEME_FIELDS:
             k.append(f"            {field} = 0x{argb(pal[key])}L,")
         g = ", ".join(f"{field} = {num(pal['_glass'][key])}" for key, field, _ in GLASS_FIELDS)
         k.append(f"            glass = GlassStyle({g}),")
+        sh = ", ".join(f"{field} = {num(pal['_shadow'][key])}" for key, field in SHADOW_FIELDS)
+        k.append(f"            shadow = ShadowStyle({sh}),")
         k.append("        ),")
     k += ["    )", "}"]
     return "\n".join(k) + "\n"
