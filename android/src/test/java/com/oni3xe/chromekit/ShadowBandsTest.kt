@@ -60,4 +60,23 @@ class ShadowBandsTest {
             assertTrue(th.id, th.shadow.alpha in 0.3f..0.6f)
         }
     }
+
+    @Test fun screenFrameGlowsInwardOnlyWithShadowOn() {
+        for (th in ChromekitThemes.all) {
+            // Shadow off: nothing
+            assertEquals(th.id, 0, screenFrameShadowBands(th.tokens.copy(shadow = null), 3f, 3f).size)
+            val on = th.tokens.copy(shadow = th.shadow)
+            val inward = screenFrameShadowBands(on, 3f, 3f)
+            val outward = panelShadowBands(on, 3f)
+            assertEquals(th.id, outward.size, inward.size)
+            assertTrue(th.id, inward.isNotEmpty())
+            for (i in inward.indices step 3) {
+                // Same fade, mirrored inside the 3px frame line
+                assertEquals(-(3f + outward[i]), inward[i], 1e-4f)
+                assertTrue(inward[i] + inward[i + 1] / 2f <= -3f + 1e-4f)
+                assertEquals(outward[i + 1], inward[i + 1], 0f)
+                assertEquals(outward[i + 2], inward[i + 2], 0f)
+            }
+        }
+    }
 }

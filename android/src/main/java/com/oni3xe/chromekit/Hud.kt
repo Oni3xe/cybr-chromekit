@@ -58,6 +58,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
@@ -498,7 +499,9 @@ fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifie
 /**
  * Screen frame: 1dp red.dim with the 6dp chamfer on the top-start and bottom-end corners (mirrored
  * in RTL), drawn over the content (the cut corners are filled with bg). Drawn, not clipped, so no
- * path clip is redrawn on every frame.
+ * path clip is redrawn on every frame. With Shadow on (`CybrTheme.tokens.shadow`) the frame turns
+ * primary and the Shadow glow fades **inward** from the frame line (a full-screen frame has no room
+ * outside it; [screenFrameShadowBands]). Shadow off draws no glow.
  */
 fun Modifier.hudScreenFrame(): Modifier = composed {
     val t = CybrTheme.tokens
@@ -508,9 +511,27 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
         val c = Tokens.Shape.CHAMFER_DP.dp.toPx()
         val ltr = layoutDirection == LayoutDirection.Ltr
         chamferCornerTriangles(size.width, size.height, c, ltr).forEach { drawPath(polygonPath(it), t.colors.bg) }
+        val bands = screenFrameShadowBands(t, density, b)
+        if (bands.isNotEmpty()) {
+            clipPath(polygonPath(opposingChamferOutline(size.width, size.height, c, 0f, ltr))) {
+                drawBands(bands, t.colors.red, c, ltr)
+            }
+        }
         // The stroke centre sits half a border inside the edge
-        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, -b / 2, ltr)), t.colors.redDim, style = Stroke(b))
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, -b / 2, ltr)),
+            if (t.shadow != null) t.colors.red else t.colors.redDim, style = Stroke(b))
     }
+}
+
+/**
+ * The screen frame's Shadow: the same smooth fade as [panelShadowBands], but inward, starting at the
+ * inner edge of the [border]-wide frame line: (offset, width, alpha) triples with negative offsets
+ * (inside the outline). Empty when Shadow is off. Pure math, in px.
+ */
+fun screenFrameShadowBands(tokens: com.oni3xe.chromekit.theme.CybrTokens, density: Float, border: Float): FloatArray {
+    val out = panelShadowBands(tokens, density)
+    for (i in out.indices step 3) out[i] = -(border + out[i])
+    return out
 }
 
 /**

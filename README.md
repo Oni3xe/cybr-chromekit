@@ -287,7 +287,7 @@ colour, starting at `alpha` right at each panel's border and fading smoothly out
 (`shadowBands()`: a quadratic fade from `alpha` to 0 at `radiusDp`; an optional edge band of
 `edgeAlpha` over `edgeWidthDp` eases into it, off in every theme), so there are no visible steps.
 With Shadow on, panels get a 1dp primary frame. **Shadow off draws nothing at all**, glass or not
-(`panelShadowBands()` is empty; tested). `themes.json` `"shadow"`: `enabled` `false`, `alpha`
+(`panelShadowBands()` is empty; tested). The screen frame (`hudScreenFrame()`) glows inward from its frame line instead (`screenFrameShadowBands()`), also only with Shadow on. `themes.json` `"shadow"`: `enabled` `false`, `alpha`
 `0.45`, `radiusDp` `10`, `edgeAlpha` `0`, `edgeWidthDp` `0` (per-theme overrides allowed); the glow
 follows the panel cut outline; `CybrTheme.tokens.shadow` is non-null when on.
 

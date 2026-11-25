@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- `hudScreenFrame()` draws the Shadow too, gated by `CybrTheme.tokens.shadow`: the same smooth fade
+  as panels, but inward from the frame line (a full-screen frame has no room outside), and the frame
+  turns primary. Shadow off draws no glow. Geometry: `screenFrameShadowBands()` (tested).
 - Shadow, round 3 (Oni3xe): no separate bright edge band; the fade starts brighter right at the
   border and tapers off a little wider. `themes.json` shadow: `alpha` 0.3 → 0.45, `radiusDp`
   8 → 10, `edgeAlpha` 0.9 → 0, `edgeWidthDp` 1 → 0. Still bands of at most 1px, no steps.
