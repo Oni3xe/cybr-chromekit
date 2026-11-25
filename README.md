@@ -6,8 +6,10 @@ standard checker, fonts, the Compose HUD components and a reusable CI check. App
 
 | Path | What |
 |---|---|
-| `tokens/tokens.json` | 1.1.0 tokens, byte-identical to the design vault's `tokens.v1.json` |
-| `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `chromekit_tokens.xml`) |
+| `tokens/tokens.json` | 1.2.0 tokens: the design vault's `tokens.v1.json` values, version bumped for the theme system (no vault doc yet) |
+| `tokens/themes.json` | the 11 theme palettes and the glass variant (kit-owned; overrides on top of `tokens.json`) |
+| `tools/gen_tokens.py` | generates an app's `Tokens.kt` (and optional `chromekit_tokens.xml`); the kit's `theme/Themes.kt` |
+| `tools/render_palette_preview.py` | renders regular and glass preview PNGs and a Markdown table of the palettes (Pillow, no build) |
 | `tools/check_standard.py` | UI standard checker, `compose` and `views` profiles |
 | `fonts/` | Rajdhani and JetBrains Mono, hinting removed, SIL OFL 1.1 (see `fonts/README.md`) |
 | `android/` | the `:chromekit` Android library (Compose): `Hud.kt`, `theme/CybrTheme.kt`, generated `Tokens.kt`, fonts |
@@ -133,6 +135,9 @@ What the module provides:
   - `ChamferShape`, `LocalReduceMotion` and `systemReduceMotion`.
 - `theme/CybrTheme.kt` (`com.oni3xe.chromekit.theme`): `CybrTheme`, `CybrTokens` and its colours, type, spacing and shapes, `ChromekitTokens` (deprecated alias: `CybrcoreTokens`), `Rajdhani`, `JetBrainsMono`.
 - `Tokens.kt` (`com.oni3xe.chromekit`): the kit's own generated tokens; apps keep theirs.
+- Themes (`com.oni3xe.chromekit.theme`, see "Themes" below): `ChromekitThemes`, `ChromekitTheme`,
+  `ChromekitThemeState`, `ChromekitCustomizationScreen`, `ChromekitThemePicker`, `ChromekitSection`,
+  `ChromekitToggleRow`, and the launcher sync client (`LauncherThemeContract`, `LauncherThemeClient`).
 - Fonts: `R.font.rajdhani_{regular,medium,semibold,bold}` and `R.font.jetbrains_mono_{regular,bold}`, merged into the app. Delete the app's own copies.
 
 **App-specific bits stay in the app**, for example:
@@ -217,6 +222,111 @@ builds (cybr-launcher) also need a public submodule and `submodules: yes` in the
    - generated `Tokens.kt` diff;
    - removed component code vs the kit;
    - font hashes.
+
+## Themes
+
+Eleven dark-only themes, all with the Red UI's balance. Each has a stable id and a code name shown
+in the picker as `CODENAME · Color`:
+
+| id | name | | id | name |
+|---|---|---|---|---|
+| `red` | KATANA · Red (default, identical to `tokens.json`) | | `amber` | SODIUM · Amber |
+| `purple` | PHANTOM · Purple | | `monochrome` | GHOST · Monochrome |
+| `orange` | EMBER · Orange | | `mocha` | NOMAD · Mocha (low contrast) |
+| `blue` | ICEBREAKER · Blue | | `noir` | CHOPPER · Noir (muted deep red, teal-grey) |
+| `pink` | SAKURA · Pink | | | |
+| `green` | MATRIX · Green | | | |
+| `cyan` | NEON · Cyan | | | |
+
+They live in `tokens/themes.json`, one entry per theme overriding `tokens.json` colour keys:
+`red.*` is the primary accent (commands, frames, titles, clock), `cyan.*` the secondary accent
+(selected, readouts, labels), plus surfaces and, for NOMAD and CHOPPER, background and text.
+`error` (`!!` lines; KATANA's magenta `#FF2BD6`) is themed per theme. `warning` (KATANA's red),
+`green` (ok) and `gold` are listed under `"fixed"` and the generator refuses a theme that overrides
+them. Type, spacing and shapes never change: sharp corners.
+
+**Never white, with one exception:** the `error` colour may be `#FFFFFF` (GHOST uses it). It is the
+only token a theme may set to white; `gen_tokens.py` refuses white anywhere else, and
+`check_standard.py` lets a white value through only on a line naming the error token
+(`error` / `ERROR` / `cybr_error`).
+
+**Glass variant**, off by default, layered on any theme (not a copy of each theme). `themes.json`
+`"glass"` holds the defaults, and a theme may override any of them under its own `"glass"`:
+
+| key | default | meaning |
+|---|---|---|
+| `enabled` | `false` | default for the user's glass toggle |
+| `surfaceAlpha` | `0.55` | opacity of `surface.1`, `surface.2` and `scrim` (frosted panels) |
+| `borderAlpha` | `0.22` | panel hairline: the theme's `text` colour at this alpha |
+| `blurRadiusDp` | `12` | background blur, API 31+ (`Modifier.blur`/RenderEffect); none below, panels stay translucent |
+| `glowAlpha` | `0.30` | soft primary-accent glow on panels and key elements (CHOPPER: `0.45`) |
+| `glowRadiusDp` | `10` | glow reach, drawn as strokes, never `shadow()` |
+
+**Panel shape (every theme):** panels (`hudPanel()`, `CybrTheme.tokens.shapes.panel`,
+`OpposingChamferShape`) have straight 45° cuts of 10dp on two opposite corners, top-start and
+bottom-end, mirrored in RTL; the other corners are square. This replaces the panels' single
+top-start cut. Tabs, menus and the screen frame keep the 6dp top-start chamfer. The size is
+`themes.json` `panel.chamferDp` (and `tokens.json` `shape.panelCut`). `check_standard.py` fails on
+curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD files, so the cuts stay straight.
+
+**Shadow**, off by default and independent of glass: a neon glow in the theme's primary colour,
+brightest in a band right at each panel's border and fading outward (`hudPanel()` /
+`shadowGlow()`, drawn strokes, square); with glass on, panels also get a 1dp primary frame.
+`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.45`, `radiusDp` `14`, `edgeAlpha` `0.9`,
+`edgeWidthDp` `2` (per-theme overrides allowed); the band and glow follow the panel cut outline;
+`CybrTheme.tokens.shadow` is non-null when on.
+
+With glass on, `CybrTheme.tokens.glass` is non-null, the surfaces are translucent, `hudPanel()`
+draws the light hairline and glow, and the app blurs its own background layer with
+`Modifier.chromekitGlassBackground(tokens)`; `Modifier.chromekitGlassGlow(tokens)` adds the glow to a
+key element (clock, active button). No new dependency.
+
+Edit a palette: change `tokens/themes.json`, run `python3 tools/gen_tokens.py` (writes
+`android/.../theme/Themes.kt`), then
+`python3 tools/render_palette_preview.py --out DIR --tag SHA` to write `regular-SHA.png`,
+`glass-SHA.png` (over a painted fog), `regular-shadow-SHA.png`, `glass-shadow-SHA.png` and
+`themes-SHA.md` for review. The kit's CI fails if
+`Themes.kt` is out of date.
+
+In an app (Compose):
+
+```kotlin
+setContent {
+    ChromekitTheme {            // instead of CybrTheme { ... }: runtime switching + launcher sync
+        // From the app's settings or menu:
+        ChromekitCustomizationScreen(onBack = { /* close */ }) {
+            // Extension point: the app's own options, e.g.
+            // ChromekitSection("Alarm") { ChromekitToggleRow("Gradual volume", on) { ... } }
+        }
+    }
+}
+```
+
+The Customization screen also has "Glass panels" and "Shadow" toggles (both off by default).
+`ChromekitTheme` reads the persisted choice (`SharedPreferences` file `chromekit_theme`) and
+recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red).
+
+### Launcher theme sync
+
+- cybr-launcher's checkbox "Apply this theme to all cybr apps" shares **theme + glass + Shadow +
+  wallpaper** through a read-only provider (`LauncherThemeContract`): authority
+  `com.oni3xe.cybrlauncher.chromekit.theme`, `content://…/theme` returns one row with
+  `theme_id` (String), `shared`, `glass`, `shadow` (Int 1/0) and `wallpaper` (String or null,
+  `content://com.oni3xe.cybrlauncher.chromekit.theme/wallpaper/<id>`, id 1-64 of `A-Za-z0-9_-`,
+  served by the same provider's read-only `openFile`). No insert/update/delete, no write mode.
+- Other apps read it on start and on change (ContentObserver). They trust it only if the
+  provider's package is `com.oni3xe.cybrlauncher` **and** its single current signing certificate's
+  SHA-256 equals `LAUNCHER_CERT_SHA256` (`theme/LauncherThemeSync.kt`). Rows are validated fail
+  closed: `shared` must be exactly 1 and the theme id known, or nothing is used; `glass`/`shadow`
+  are on only for exactly 1; a wallpaper that isn't exactly the launcher provider's
+  `wallpaper/<id>` path is dropped. `ChromekitThemeState.openSharedWallpaper()` re-checks the URI
+  and trust before opening it. Otherwise, or with sync off, apps use their local choices. The
+  picker shows "Following launcher" with a "Use local" break-away; changing a theme, glass or
+  Shadow while following also breaks away, keeping the rest of the launcher's look.
+- `LAUNCHER_CERT_SHA256` is currently `LAUNCHER_CERT_SHA256_PLACEHOLDER`: until Oni3xe pins the
+  launcher's release certificate hash there, sync **fails closed** (no provider is even queried).
+- Release signing stays per app. The kit's manifest adds only a `<queries>` entry for the
+  launcher's package (Android 11+ package visibility). No permissions, no INTERNET, no telemetry.
 
 ## The kit's own CI
 

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.oni3xe.chromekit.ChamferShape
+import com.oni3xe.chromekit.OpposingChamferShape
 import com.oni3xe.chromekit.R
 import com.oni3xe.chromekit.Tokens
 import com.oni3xe.chromekit.Tokens.Color as T
@@ -65,8 +66,14 @@ data class CybrColors(
     val disabled: Color,
     val green: Color,
     val gold: Color,
-    /** Errors only, always with `!!`. */
+    /** Errors only, always with `!!`. Themed per theme; the one token that may be white. */
     val error: Color,
+    /**
+     * Warnings (`!` prefix or CAPS). Stays the Red theme's red in every theme unless a theme sets its
+     * own; in the Red theme it equals [red]. In other themes `red*` is the primary accent and `cyan*`
+     * the secondary accent (see tokens/themes.json).
+     */
+    val warning: Color = Color(Tokens.Role.WARNING),
 )
 
 @Immutable
@@ -96,17 +103,35 @@ data class CybrSpacing(val s: Dp, val m: Dp, val l: Dp, val xl: Dp, val xxl: Dp,
     val gutter: Dp get() = l
 }
 
-/** Square everywhere; one 6dp top-start chamfer on panels, menus, tabs and the screen frame. */
+/**
+ * Square everywhere; one 6dp top-start chamfer on menus, tabs and the screen frame. Panels
+ * (`hudPanel`) use [panel]: straight 45° cuts of [panelCut] (10dp, tokens/themes.json "panel") on
+ * the top-start and bottom-end corners, mirrored in RTL. Never rounded.
+ */
 @Immutable
 data class CybrShapes(
     /** Material needs a CornerBasedShape; 0dp radius is a rectangle. */
     val default: CornerBasedShape,
     val block: Shape,
     val chamfer: Shape,
-)
+    /** The panel cut size; see [panel]. */
+    val panelCut: Dp = GeneratedThemes.PANEL_CHAMFER_DP.dp,
+) {
+    /** Panel shape: 45° cuts of [panelCut] on two opposite corners (top-start, bottom-end). */
+    val panel: Shape = OpposingChamferShape(panelCut)
+}
 
 @Immutable
-data class CybrTokens(val colors: CybrColors, val type: CybrType, val spacing: CybrSpacing, val shapes: CybrShapes)
+data class CybrTokens(
+    val colors: CybrColors,
+    val type: CybrType,
+    val spacing: CybrSpacing,
+    val shapes: CybrShapes,
+    /** Non-null when the glass variant is on: translucent surfaces, light hairlines, glow, background blur. */
+    val glass: GlassStyle? = null,
+    /** Non-null when Shadow is on: a subtle primary-colour glow outward from each panel edge. */
+    val shadow: ShadowStyle? = null,
+)
 
 val Rajdhani = FontFamily(
     Font(R.font.rajdhani_regular, FontWeight.Normal),

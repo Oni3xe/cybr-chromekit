@@ -21,6 +21,7 @@ chromekit.json, "tokens" section (paths relative to the repo root):
       "colorType": "long",      # "long" (ARGB Long, Compose apps) or "int" (ARGB Int, Views apps)
       "hex": false,             # also emit Tokens.Hex (colours as "#RRGGBB" strings)
       "xml": null,              # or a res/values path: cybr_* <color> and <dimen> resources (e.g. chromekit_tokens.xml)
+      "themes": null,           # or a Kotlin path: the theme palettes from tokens/themes.json (chromekit only)
       "exceptions": null        # or {"from": "cybr-map", "prefix": "map.", "object": "MapException",
                                 #      "doc": "..."}: an app's named exceptions from tokens.json
     }
@@ -37,6 +38,7 @@ from pathlib import Path
 SELF = Path(os.path.abspath(__file__))
 KIT = SELF.parents[1]
 TOKENS = KIT / "tokens" / "tokens.json"
+THEMES = KIT / "tokens" / "themes.json"
 
 
 def read_pin(root: Path) -> tuple:
@@ -191,6 +193,8 @@ def generate(root: Path, cfg: dict) -> dict:
     k.append("    }")
     k.append("}")
     out = {root / cfg["kotlin"]: "\n".join(k) + "\n"}
+    if cfg.get("themes"):
+        out[root / cfg["themes"]] = gen_themes(root, cfg, colors, t["role"], tool, pin)
 
     if cfg.get("xml"):
         x = ['<?xml version="1.0" encoding="utf-8"?>', f"<!-- {head} -->", "<resources>"]
@@ -202,6 +206,105 @@ def generate(root: Path, cfg: dict) -> dict:
         x.append("</resources>")
         out[root / cfg["xml"]] = "\n".join(x) + "\n"
     return out
+
+
+# CybrColors fields, in constructor order, and the tokens.json key each one reads.
+THEME_FIELDS = [("bg", "bg"), ("surface1", "surface.1"), ("surface2", "surface.2"), ("scrim", "scrim"),
+                ("redBright", "red.bright"), ("red", "red"), ("redDim", "red.dim"), ("redDeep", "red.deep"),
+                ("cyanBright", "cyan.bright"), ("cyan", "cyan"), ("cyanDim", "cyan.dim"), ("cyanDeep", "cyan.deep"),
+                ("text", "text"), ("textMuted", "text.muted"), ("disabled", "disabled"),
+                ("green", "green"), ("gold", "gold"), ("error", "error"), ("warning", "warning")]
+# The only colour key a theme may set to white: the error colour (Oni3xe's explicit exception).
+WHITE_OK = {"error"}
+# GlassStyle fields: (themes.json key, Kotlin field, Kotlin type).
+SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp"), ("edgeAlpha", "edgeAlpha"), ("edgeWidthDp", "edgeWidthDp")]
+GLASS_FIELDS = [("surfaceAlpha", "surfaceAlpha", "f"), ("borderAlpha", "borderAlpha", "f"),
+                ("blurRadiusDp", "blurRadiusDp", "f"), ("glowAlpha", "glowAlpha", "f"), ("glowRadiusDp", "glowRadiusDp", "f")]
+
+
+def resolve_themes(colors: dict, roles: dict) -> tuple:
+    """Return (themes.json document, [(theme, {key: hex})]) with every theme fully resolved.
+
+    A theme overrides tokens.json colour keys; anything it leaves out comes from tokens.json.
+    "warning" defaults to the tokens' warning role colour (the Red theme's red). The keys in "fixed"
+    (warning, ok, gold) can't be overridden; "error" is themed and may be white. Each theme also gets
+    its resolved "glass" and "shadow" styles under the keys "_glass" and "_shadow"."""
+    doc = json.loads(THEMES.read_text())
+    base = dict(colors)
+    base["warning"] = colors[roles["warning"]]
+    fixed = set(doc.get("fixed", []))
+    glass = {k: v for k, v in doc.get("glass", {}).items() if not k.startswith("$")}
+    shadow = {k: v for k, v in doc.get("shadow", {}).items() if not k.startswith("$")}
+    seen, out = set(), []
+    for th in doc["themes"]:
+        tid = th["id"]
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", tid) or tid in seen:
+            raise SystemExit(f"themes.json: bad or duplicate theme id {tid!r}")
+        seen.add(tid)
+        unknown = set(th.get("colors", {})) - set(base)
+        if unknown:
+            raise SystemExit(f"themes.json: theme {tid} sets unknown colour keys {sorted(unknown)}")
+        locked = fixed & set(th.get("colors", {}))
+        if locked:
+            raise SystemExit(f"themes.json: theme {tid} overrides fixed alert colours {sorted(locked)}")
+        pal = {**base, **th.get("colors", {})}
+        for key, v in pal.items():
+            if argb(v)[2:] == "FFFFFF" and key not in WHITE_OK:
+                raise SystemExit(f"themes.json: theme {tid} {key} is white; chromekit never uses white (only error may)")
+        g = {**glass, **th.get("glass", {})}
+        for key, _, _ in GLASS_FIELDS:
+            v = g.get(key)
+            if not isinstance(v, (int, float)) or v < 0 or (key.endswith("Alpha") and v > 1):
+                raise SystemExit(f"themes.json: theme {tid} glass {key} must be a number (alphas 0..1)")
+        sh = {**shadow, **th.get("shadow", {})}
+        for key, _ in SHADOW_FIELDS:
+            v = sh.get(key)
+            if not isinstance(v, (int, float)) or v < 0 or (key.lower().endswith("alpha") and v > 1):
+                raise SystemExit(f"themes.json: theme {tid} shadow {key} must be a number (alpha 0..1)")
+        if not th.get("label") or not th.get("color"):
+            raise SystemExit(f"themes.json: theme {tid} needs a code-name \"label\" and a \"color\"")
+        out.append((th, {**pal, "_glass": g, "_shadow": sh}))
+    if doc.get("default") not in seen:
+        raise SystemExit("themes.json: \"default\" must name a theme")
+    first = doc["themes"][0]
+    if first["id"] != "red" or first.get("colors"):
+        raise SystemExit("themes.json: the first theme must be \"red\" with no overrides (identical to tokens.json)")
+    return doc, out
+
+
+def panel_chamfer(doc: dict) -> float:
+    """The panel cut (themes.json "panel.chamferDp"): straight 45° cuts on top-start and bottom-end."""
+    v = doc.get("panel", {}).get("chamferDp")
+    if not isinstance(v, (int, float)) or v < 0:
+        raise SystemExit("themes.json: panel.chamferDp must be a number >= 0")
+    return v
+
+
+def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin: str) -> str:
+    doc, themes = resolve_themes(colors, roles)
+    sha = hashlib.sha256(THEMES.read_bytes()).hexdigest()
+    pkg = cfg.get("themesPackage", cfg["package"] + ".theme")
+    k = [f"// GENERATED by {tool} from {rel(THEMES, root)} (chromekit {pin}, sha256 {sha[:16]}). Do not edit.",
+         f"package {pkg}", "",
+         "/** Theme palettes as ARGB longs, in picker order. Edit tokens/themes.json, then regenerate. */",
+         "internal object GeneratedThemes {",
+         f"    const val DEFAULT_ID = \"{doc['default']}\"",
+         f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}",
+         f"    const val SHADOW_DEFAULT = {str(bool(doc.get('shadow', {}).get('enabled', False))).lower()}",
+         f"    const val PANEL_CHAMFER_DP = {num(panel_chamfer(doc))}", "",
+         "    val ALL: List<ThemePalette> = listOf("]
+    for th, pal in themes:
+        k.append(f"        ThemePalette(")
+        k.append(f"            id = \"{th['id']}\", label = \"{th['label']}\", colorName = \"{th['color']}\", lowContrast = {str(bool(th.get('lowContrast'))).lower()},")
+        for field, key in THEME_FIELDS:
+            k.append(f"            {field} = 0x{argb(pal[key])}L,")
+        g = ", ".join(f"{field} = {num(pal['_glass'][key])}" for key, field, _ in GLASS_FIELDS)
+        k.append(f"            glass = GlassStyle({g}),")
+        sh = ", ".join(f"{field} = {num(pal['_shadow'][key])}" for key, field in SHADOW_FIELDS)
+        k.append(f"            shadow = ShadowStyle({sh}),")
+        k.append("        ),")
+    k += ["    )", "}"]
+    return "\n".join(k) + "\n"
 
 
 def main():

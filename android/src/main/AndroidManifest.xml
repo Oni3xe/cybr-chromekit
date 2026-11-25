@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- chromekit asks for no permissions (no INTERNET). It only needs to see the launcher's package
+     to read its read-only theme provider and check its signing certificate (Android 11+ visibility). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <queries>
+        <package android:name="com.oni3xe.cybrlauncher" />
+    </queries>
+</manifest>

@@ -1,0 +1,231 @@
+{
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and must override nothing, so it stays identical to tokens.json. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'panel' sets the panel cut for every theme. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
+  "version": 1,
+  "default": "red",
+  "fixed": [
+    "warning",
+    "green",
+    "gold"
+  ],
+  "panel": {
+    "chamferDp": 10,
+    "$comment": "Panel shape in every theme, Shadow on or off: straight 45\u00b0 cuts of chamferDp on two opposite corners, top-start and bottom-end (mirrored in RTL); the other corners square. No rounding. Tabs, menus and the screen frame keep the single 6dp top-start chamfer from tokens.json."
+  },
+  "glass": {
+    "enabled": false,
+    "surfaceAlpha": 0.55,
+    "borderAlpha": 0.22,
+    "blurRadiusDp": 12,
+    "glowAlpha": 0.3,
+    "glowRadiusDp": 10,
+    "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. border: the theme's text colour at borderAlpha (subtle light hairline). blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha, drawn as strokes out to glowRadiusDp."
+  },
+  "shadow": {
+    "enabled": false,
+    "alpha": 0.45,
+    "radiusDp": 14,
+    "edgeAlpha": 0.9,
+    "edgeWidthDp": 2,
+    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). The band and glow follow the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
+  },
+  "themes": [
+    {
+      "id": "red",
+      "label": "KATANA",
+      "color": "Red",
+      "colors": {}
+    },
+    {
+      "id": "purple",
+      "label": "PHANTOM",
+      "color": "Purple",
+      "colors": {
+        "red.bright": "#C9A6FF",
+        "red": "#B07CFF",
+        "red.dim": "#7B57B2",
+        "red.deep": "#281C3A",
+        "cyan.bright": "#A3E8CB",
+        "cyan": "#66D9A8",
+        "cyan.dim": "#428D6D",
+        "cyan.deep": "#163025",
+        "surface.1": "#09060D",
+        "surface.2": "#120C1A",
+        "error": "#FF6BE0"
+      }
+    },
+    {
+      "id": "orange",
+      "label": "EMBER",
+      "color": "Orange",
+      "colors": {
+        "red.bright": "#FFAF7B",
+        "red": "#FF8A3D",
+        "red.dim": "#B2612B",
+        "red.deep": "#3A1F0E",
+        "cyan.bright": "#9DDEFF",
+        "cyan": "#5CC8FF",
+        "cyan.dim": "#3C82A6",
+        "cyan.deep": "#142C38",
+        "surface.1": "#0D0703",
+        "surface.2": "#1A0E06",
+        "error": "#C77DFF"
+      }
+    },
+    {
+      "id": "blue",
+      "label": "ICEBREAKER",
+      "color": "Blue",
+      "colors": {
+        "red.bright": "#86C0FF",
+        "red": "#4DA3FF",
+        "red.dim": "#3672B2",
+        "red.deep": "#11253A",
+        "cyan.bright": "#F7CA9C",
+        "cyan": "#F2A65A",
+        "cyan.dim": "#9D6C3A",
+        "cyan.deep": "#352514",
+        "surface.1": "#04080D",
+        "surface.2": "#08101A",
+        "error": "#B98CFF"
+      }
+    },
+    {
+      "id": "pink",
+      "label": "SAKURA",
+      "color": "Pink",
+      "colors": {
+        "red.bright": "#FF92CF",
+        "red": "#FF5FB8",
+        "red.dim": "#B24281",
+        "red.deep": "#3A162A",
+        "cyan.bright": "#A3E8DC",
+        "cyan": "#66D9C4",
+        "cyan.dim": "#428D7F",
+        "cyan.deep": "#16302B",
+        "surface.1": "#0D0509",
+        "surface.2": "#1A0A12",
+        "error": "#B57BFF"
+      }
+    },
+    {
+      "id": "green",
+      "label": "MATRIX",
+      "color": "Green",
+      "colors": {
+        "red.bright": "#8DECAF",
+        "red": "#57E389",
+        "red.dim": "#3D9F60",
+        "red.deep": "#14341F",
+        "cyan.bright": "#DDBEFF",
+        "cyan": "#C792FF",
+        "cyan.dim": "#815FA6",
+        "cyan.deep": "#2C2038",
+        "surface.1": "#040B07",
+        "surface.2": "#09170E",
+        "error": "#E07BFF"
+      }
+    },
+    {
+      "id": "cyan",
+      "label": "NEON",
+      "color": "Cyan",
+      "colors": {
+        "red.bright": "#74E3EE",
+        "red": "#33D6E6",
+        "red.dim": "#2496A1",
+        "red.deep": "#0C3134",
+        "cyan.bright": "#FFAFBC",
+        "cyan": "#FF7A90",
+        "cyan.dim": "#A64F5E",
+        "cyan.deep": "#381B20",
+        "surface.1": "#030B0C",
+        "surface.2": "#051517",
+        "error": "#C08CFF"
+      }
+    },
+    {
+      "id": "amber",
+      "label": "SODIUM",
+      "color": "Amber",
+      "colors": {
+        "red.bright": "#FFCF74",
+        "red": "#FFB833",
+        "red.dim": "#B28124",
+        "red.deep": "#3A2A0C",
+        "cyan.bright": "#A9CBFF",
+        "cyan": "#6FA8FF",
+        "cyan.dim": "#486DA6",
+        "cyan.deep": "#182538",
+        "surface.1": "#0D0903",
+        "surface.2": "#1A1205",
+        "error": "#D48CFF"
+      }
+    },
+    {
+      "id": "monochrome",
+      "label": "GHOST",
+      "color": "Monochrome",
+      "colors": {
+        "red.bright": "#DADADA",
+        "red": "#C8C8C8",
+        "red.dim": "#8C8C8C",
+        "red.deep": "#2D2D2D",
+        "cyan.bright": "#BBC1C5",
+        "cyan": "#8E979F",
+        "cyan.dim": "#5C6267",
+        "cyan.deep": "#1F2123",
+        "surface.1": "#0A0A0A",
+        "surface.2": "#141414",
+        "error": "#FFFFFF"
+      }
+    },
+    {
+      "id": "mocha",
+      "label": "NOMAD",
+      "color": "Mocha",
+      "lowContrast": true,
+      "colors": {
+        "red.bright": "#D3B398",
+        "red": "#C8A07E",
+        "red.dim": "#90735B",
+        "red.deep": "#342A21",
+        "cyan.bright": "#BCD1CB",
+        "cyan": "#8FB3A8",
+        "cyan.dim": "#5D746D",
+        "cyan.deep": "#1F2725",
+        "bg": "#0E0B09",
+        "surface.1": "#17120F",
+        "surface.2": "#211A16",
+        "text": "#A89F96",
+        "text.muted": "#857C74",
+        "disabled": "#4F4944",
+        "error": "#E2B3F7"
+      }
+    },
+    {
+      "id": "noir",
+      "label": "CHOPPER",
+      "color": "Noir",
+      "colors": {
+        "bg": "#07090C",
+        "surface.1": "#0E141A",
+        "surface.2": "#151E25",
+        "red.bright": "#EE3B3E",
+        "red": "#C8383C",
+        "red.dim": "#84383A",
+        "red.deep": "#34131A",
+        "cyan.bright": "#A4E5E9",
+        "cyan": "#8DA5A7",
+        "cyan.dim": "#5E7779",
+        "cyan.deep": "#102A2B",
+        "text": "#B4BBC3",
+        "text.muted": "#7E8A92",
+        "disabled": "#4A535A",
+        "error": "#C9A2FF"
+      },
+      "glass": {
+        "glowAlpha": 0.45
+      }
+    }
+  ]
+}

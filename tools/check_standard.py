@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI checks for chromekit (v1.1), for Compose and Views apps.
+"""CI checks for chromekit (v1.2), for Compose and Views apps.
 
 Run from the consuming repo's root (the directory holding chromekit.json):
 
@@ -26,8 +26,14 @@ chromekit.json, "check" section (paths relative to the repo root):
 Compose profile fails on (UI-Standard-v1.1 "Enforcement"):
   - a raw colour hex (#RRGGBB, #AARRGGBB, 0xAARRGGBB, Color(0x...)) outside the generated tokens,
     except the named exceptions;
-  - white or near-white: Color.White, Color.WHITE, @android:color/white, #FFFFFF;
+  - white or near-white: Color.White, Color.WHITE, @android:color/white, #FFFFFF, except on a
+    line that names the error token (error / ERROR / cybr_error): the error colour is the one token
+    a theme may set to white (Oni3xe's explicit exception, chromekit 1.2.0 themes);
   - FlowRow or horizontalScroll (buttons never wrap or scroll sideways; one row of buttons);
+  - curves (quadraticTo, cubicTo, arcTo, addRoundRect, addOval, ...) in the shared HUD files: panel
+    and tab outlines are straight lines only. Square corners or 45° cuts: the 6dp top-start chamfer
+    on tabs, menus and the screen frame, and the panel cut on two opposite corners (top-start and
+    bottom-end, 10dp, mirrored in RTL; chromekit 1.2.0). A 45° cut is not rounding;
   - TextOverflow.Ellipsis in the shared buttons and tabs (the "hud" files);
   - indication = null outside the shared press modifier (the "hud" files);
   - shadow() used as a glow (Modifier.shadow, setShadowLayer);
@@ -38,7 +44,8 @@ Compose profile fails on (UI-Standard-v1.1 "Enforcement"):
 Views profile fails on:
   - a raw colour hex (#RRGGBB, #AARRGGBB, 0xAARRGGBB) outside the generated tokens files, except
     the named exceptions;
-  - white text sources: @android:color/white, Color.WHITE, #FFFFFF;
+  - white text sources: @android:color/white, Color.WHITE, #FFFFFF, except on a line that names
+    the error token (the error colour may be white);
   - fontFamily="monospace" (the data font is the bundled JetBrains Mono);
   - buttons that wrap or scroll sideways (HorizontalScrollView, flexbox/flow layouts);
   - shadow glows (setShadowLayer, shadowColor): glows are drawn strokes;
@@ -57,6 +64,8 @@ from pathlib import Path
 
 # ---- Compose profile -------------------------------------------------------------------------
 C_HEX = re.compile(r"(?<![\w&%])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6})\b|\b0x[0-9A-Fa-f]{8}L?\b")
+# The error colour is the one token allowed to be white; a white match on a line naming it passes.
+ERROR_TOKEN = re.compile(r"\b(error|ERROR|cybr_error)\b")
 C_WHITE = re.compile(r"@android:color/white|\bColor\.(White|WHITE)\b|#(?:FF)?FFFFFF\b", re.I)
 C_BASE = [
     (re.compile(r"\bFlowRow\b|\bhorizontalScroll\b"), False, "buttons never wrap or scroll sideways"),
@@ -69,6 +78,8 @@ C_MATERIAL = [
     (re.compile(r"RoundedCornerShape\((?!\s*(0(\.dp)?|Tokens\.Shape\.CORNER_RADIUS_DP\.dp)\s*\))"), False, "never rounded corners (chamfer or square)"),
 ]
 # True: allowed only inside the "hud" files.
+# Shared HUD files only (apps may draw curves elsewhere, e.g. launcher icon masks).
+C_HUD_STRAIGHT = re.compile(r"\b(quadraticTo|quadraticBezierTo|relativeQuadraticTo|cubicTo|relativeCubicTo|arcTo|arcToRad|addArc|addRoundRect|addOval)\b")
 C_HUD_ONLY = [(re.compile(r"indication\s*=\s*null"), True, "indication = null only inside the shared press modifier")]
 
 # ---- Views profile ---------------------------------------------------------------------------
@@ -120,11 +131,13 @@ def check_compose(root: Path, c: dict, files: list) -> list:
                 continue
             if C_HEX.search(code) and not excepted(ex, rel, line):
                 problems.append(f"{rel}:{n}: raw colour hex outside tokens: {line.strip()}")
-            if C_WHITE.search(code) and not excepted(ex, rel, line):
+            if C_WHITE.search(code) and not ERROR_TOKEN.search(code) and not excepted(ex, rel, line):
                 problems.append(f"{rel}:{n}: white or near-white colour: {line.strip()}")
             for rx, hud_only, why in rules:
                 if rx.search(code) and not (hud_only and rel in hud):
                     problems.append(f"{rel}:{n}: {why}: {line.strip()}")
+            if rel in hud and C_HUD_STRAIGHT.search(code):
+                problems.append(f"{rel}:{n}: panel and tab outlines are straight lines (square or 45° cuts), never curves: {line.strip()}")
             if rel in hud and "TextOverflow.Ellipsis" in code:
                 problems.append(f"{rel}:{n}: buttons and tabs are never truncated: {line.strip()}")
     return problems
@@ -146,7 +159,7 @@ def check_views(root: Path, c: dict, files: list) -> list:
                 continue
             if V_HEX.search(code) and not excepted(ex, rel, line):
                 problems.append(f"{rel}:{n}: raw colour hex outside tokens: {line.strip()}")
-            elif V_WHITE.search(code) and not excepted(ex, rel, line):
+            elif V_WHITE.search(code) and not ERROR_TOKEN.search(code) and not excepted(ex, rel, line):
                 problems.append(f"{rel}:{n}: white or near-white colour: {line.strip()}")
             for rx, why in V_RULES:
                 if rx.search(code):

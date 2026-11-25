@@ -2,12 +2,13 @@
   "tokens": {
     "kotlin": "android/src/main/java/com/oni3xe/chromekit/Tokens.kt",
     "package": "com.oni3xe.chromekit",
-    "colorType": "long"
+    "colorType": "long",
+    "themes": "android/src/main/java/com/oni3xe/chromekit/theme/Themes.kt"
   },
   "check": {
     "profile": "compose",
     "sources": ["android/src/main"],
-    "generated": ["android/src/main/java/com/oni3xe/chromekit/Tokens.kt"],
+    "generated": ["android/src/main/java/com/oni3xe/chromekit/Tokens.kt", "android/src/main/java/com/oni3xe/chromekit/theme/Themes.kt"],
     "hud": ["android/src/main/java/com/oni3xe/chromekit/Hud.kt"],
     "materialRules": true,
     "exceptions": []

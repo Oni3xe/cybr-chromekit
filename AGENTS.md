@@ -19,7 +19,10 @@ Rules for every agent (and human) working on chromekit, the shared UI kit.
   a new tokens version comes from the design vault and is a version bump in every app's
   `chromekit.version` (deprecated fallback: `cybrcore.version`). The file's `"name"` is
   `chromekit` (renamed from `cybrcore` with Oni3xe's go-ahead; values are otherwise unchanged).
-- Generated files (`Tokens.kt`, `chromekit_tokens.xml`) are never edited by hand; change the
+- `tokens/themes.json` (the theme palettes) is kit-owned: palette values change only on Oni3xe's
+  review; the `red` theme (KATANA) must stay empty so it equals `tokens.json`. Theme ids never
+  change; code names may. Never white, except the `error` token (Oni3xe's explicit exception).
+- Generated files (`Tokens.kt`, `theme/Themes.kt`, `chromekit_tokens.xml`) are never edited by hand; change the
   generator and regenerate.
 - The fonts stay under the SIL OFL 1.1 with their notices; the MIT licence covers the code only.
 - App-specific UI stays in the app. The kit holds only what is identical across apps.
