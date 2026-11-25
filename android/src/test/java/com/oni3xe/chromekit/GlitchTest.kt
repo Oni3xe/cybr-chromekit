@@ -33,6 +33,43 @@ class GlitchTest {
         }
     }
 
+    @Test fun frequencyOneKeepsTheOriginalCadenceExactly() {
+        val original = listOf(7_000L..12_000L, 5_000L..9_000L, 3_000L..6_000L)
+        for (s in 1..3) {
+            assertEquals(original[s - 1], GlitchMath.gapRangeMs(s, 1))
+            assertEquals(original[s - 1], GlitchMath.gapRangeMs(s))
+            // Same random sequence as the two-argument call
+            assertEquals(GlitchMath.gapMs(s, Random(11)), GlitchMath.gapMs(s, 1, Random(11)))
+        }
+        assertEquals(1, com.oni3xe.chromekit.views.GlitchSpec(GlitchType.DEFAULT, 1).frequency)
+    }
+
+    @Test fun cadencePerFrequencyLevel() {
+        val rnd = Random(5)
+        // level 2: 0.6x the gaps, level 3: 0.35x, never under the floor
+        assertEquals(4_200L..7_200L, GlitchMath.gapRangeMs(1, 2))
+        assertEquals(2_450L..4_200L, GlitchMath.gapRangeMs(1, 3))
+        assertEquals(1_800L..3_600L, GlitchMath.gapRangeMs(3, 2))
+        assertEquals(1_500L..2_100L, GlitchMath.gapRangeMs(3, 3))
+        for (s in 1..3) {
+            assertTrue(GlitchMath.gapRangeMs(s, 3).last < GlitchMath.gapRangeMs(s, 2).last)
+            assertTrue(GlitchMath.gapRangeMs(s, 2).last < GlitchMath.gapRangeMs(s, 1).last)
+            for (fq in 1..3) {
+                val range = GlitchMath.gapRangeMs(s, fq)
+                assertTrue(range.first >= GlitchMath.GAP_FLOOR_MS)
+                repeat(200) { assertTrue(GlitchMath.gapMs(s, fq, rnd) in range) }
+                assertTrue("s=$s f=$fq", GlitchMath.maxDutyCycle(s, fq) <= GlitchMath.dutyCap(fq))
+            }
+        }
+        assertTrue(GlitchMath.dutyCap(3) <= 0.3f)
+    }
+
+    @Test fun frequencyIsValidated() {
+        for (bad in listOf(0, 4)) {
+            assertTrue(runCatching { com.oni3xe.chromekit.views.GlitchSpec(GlitchType.DEFAULT, 1, bad) }.isFailure)
+        }
+    }
+
     @Test fun visibleButSubtle() {
         assertTrue(GlitchMath.alpha(1) >= 0.12f) // round 11's 0.06 was invisible on a device
         assertTrue(GlitchMath.alpha(1) < GlitchMath.alpha(2) && GlitchMath.alpha(2) < GlitchMath.alpha(3))

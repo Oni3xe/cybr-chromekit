@@ -33,15 +33,23 @@ enum class GlitchType(val value: String) {
     }
 }
 
-/** Type and strength together. [strength] is 1..3. */
-data class GlitchSpec(val type: GlitchType, val strength: Int) {
-    init { require(strength in GlitchMath.MIN_STRENGTH..GlitchMath.MAX_STRENGTH) }
+/**
+ * Type, strength and frequency together. [strength] (1..3) sets how strong a burst looks;
+ * [frequency] (1..3) sets how often bursts come, independently. Frequency 1 is the original cadence.
+ */
+data class GlitchSpec(val type: GlitchType, val strength: Int, val frequency: Int = GlitchMath.MIN_FREQUENCY) {
+    init {
+        require(strength in GlitchMath.MIN_STRENGTH..GlitchMath.MAX_STRENGTH)
+        require(frequency in GlitchMath.MIN_FREQUENCY..GlitchMath.MAX_FREQUENCY)
+    }
 }
 
 /** Timing and intensity, pure (unit tested). */
 object GlitchMath {
     const val MIN_STRENGTH = 1
     const val MAX_STRENGTH = 3
+    const val MIN_FREQUENCY = 1
+    const val MAX_FREQUENCY = 3
     /** Frame step inside a burst (about 20fps: a glitch should stutter, not animate smoothly). */
     const val FRAME_MS = 50L
     /** The first burst after it's turned on or the screen comes back: soon enough to be noticed. */
@@ -53,14 +61,33 @@ object GlitchMath {
     private val BURST_MIN_MS = longArrayOf(160, 200, 260)
     private val BURST_MAX_MS = longArrayOf(260, 320, 420)
     private val ALPHA = floatArrayOf(0.14f, 0.20f, 0.28f)
+    /** Gap multiplier per frequency: 1 = the original gaps exactly, 2 = ~1.7x as often, 3 = ~3x. */
+    private val FREQUENCY_GAP_FACTOR = floatArrayOf(1f, 0.6f, 0.35f)
+    /** No gap is ever shorter than this (frequency 2-3 only; frequency 1 gaps are 3s and up). */
+    const val GAP_FLOOR_MS = 1_500L
+    /** Battery bound: the most of the time spent drawing, per frequency (worst case, strength 3). */
+    private val DUTY_CAP = floatArrayOf(0.15f, 0.25f, 0.30f)
 
     private fun i(strength: Int) = strength.coerceIn(MIN_STRENGTH, MAX_STRENGTH) - 1
+    private fun f(frequency: Int) = frequency.coerceIn(MIN_FREQUENCY, MAX_FREQUENCY) - 1
+    private fun scaled(ms: Long, frequency: Int): Long =
+        if (f(frequency) == 0) ms else (ms * FREQUENCY_GAP_FACTOR[f(frequency)]).toLong().coerceAtLeast(GAP_FLOOR_MS)
+
+    /** Shortest and longest quiet time for this strength and frequency. */
+    fun gapRangeMs(strength: Int, frequency: Int = MIN_FREQUENCY): LongRange =
+        scaled(GAP_MIN_MS[i(strength)], frequency)..scaled(GAP_MAX_MS[i(strength)], frequency)
+
+    /** The drawing-time cap for a frequency level. */
+    fun dutyCap(frequency: Int): Float = DUTY_CAP[f(frequency)]
 
     /** Delay before the first burst once running. */
     fun firstMs(rnd: Random): Long = rnd.nextLong(FIRST_MIN_MS, FIRST_MAX_MS + 1)
 
     /** Quiet time before the next burst. */
-    fun gapMs(strength: Int, rnd: Random): Long = rnd.nextLong(GAP_MIN_MS[i(strength)], GAP_MAX_MS[i(strength)] + 1)
+    fun gapMs(strength: Int, rnd: Random): Long = gapMs(strength, MIN_FREQUENCY, rnd)
+
+    fun gapMs(strength: Int, frequency: Int, rnd: Random): Long =
+        gapRangeMs(strength, frequency).let { rnd.nextLong(it.first, it.last + 1) }
 
     /** Length of one burst. */
     fun burstMs(strength: Int, rnd: Random): Long = rnd.nextLong(BURST_MIN_MS[i(strength)], BURST_MAX_MS[i(strength)] + 1)
@@ -77,7 +104,8 @@ object GlitchMath {
     }
 
     /** Share of the time spent bursting (battery bound): worst case burst max / gap min. */
-    fun maxDutyCycle(strength: Int): Float = BURST_MAX_MS[i(strength)].toFloat() / GAP_MIN_MS[i(strength)]
+    fun maxDutyCycle(strength: Int, frequency: Int = MIN_FREQUENCY): Float =
+        BURST_MAX_MS[i(strength)].toFloat() / gapRangeMs(strength, frequency).first
 
     /**
      * Reduced motion, from the system's animator duration scale: 0 means "animator duration scale:
@@ -94,7 +122,7 @@ object GlitchMath {
 
 /**
  * Full-screen, non-interactive overlay. Set [spec] (null = off) and [primary]/[secondary] (theme
- * colours: red, cyan). It idles with no drawing and no frame callbacks; a timer wakes it for a short
+ * colours: red, cyan, or the launcher's light theme tint). Set the colours before [spec]. It idles with no drawing and no frame callbacks; a timer wakes it for a short
  * burst of a few frames, then sleeps again. The first burst comes 1-2s after it starts running
  * (turned on, shown again, back from another screen). It only runs while attached, shown and its
  * window visible (screen off or another app on top stops it), and never with reduced motion.
@@ -132,7 +160,7 @@ class GlitchOverlayView @JvmOverloads constructor(context: Context, attrs: Attri
             } else {
                 burstEnd = 0L
                 invalidate() // one clean frame
-                postDelayed(this, GlitchMath.gapMs(s.strength, rnd))
+                postDelayed(this, GlitchMath.gapMs(s.strength, s.frequency, rnd))
             }
         }
     }
