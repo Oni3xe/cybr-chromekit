@@ -74,7 +74,6 @@ class ThemeRegistryTest {
             // Brightest at the border: the edge band is brighter than the outer fade and inside its radius.
             assertTrue(th.shadow.edgeAlpha in th.shadow.alpha..1f)
             assertTrue(th.shadow.edgeWidthDp > 0f && th.shadow.edgeWidthDp < th.shadow.radiusDp)
-            assertTrue(th.shadow.chamferDp > 0f)
         }
     }
 
@@ -90,6 +89,15 @@ class ThemeRegistryTest {
             assertEquals(th.tokens.colors.red, g.colors.red)
             assertEquals(th.tokens.shapes, g.shapes)
             assertTrue(th.glass.blurRadiusDp > 0f && th.glass.borderAlpha in 0f..1f && th.glass.glowAlpha in 0f..1f)
+        }
+    }
+
+    @Test fun everyThemeUsesTheDoubleOppositePanelCut() {
+        for (th in ChromekitThemes.all) {
+            for (tokens in listOf(th.tokens(false, false), th.tokens(true, false), th.tokens(false, true), th.tokens(true, true))) {
+                assertEquals(th.id, 10f, tokens.shapes.panelCut.value, 0f)
+                assertTrue(th.id, tokens.shapes.panel is com.oni3xe.chromekit.OpposingChamferShape)
+            }
         }
     }
 

@@ -217,7 +217,7 @@ THEME_FIELDS = [("bg", "bg"), ("surface1", "surface.1"), ("surface2", "surface.2
 # The only colour key a theme may set to white: the error colour (Oni3xe's explicit exception).
 WHITE_OK = {"error"}
 # GlassStyle fields: (themes.json key, Kotlin field, Kotlin type).
-SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp"), ("edgeAlpha", "edgeAlpha"), ("edgeWidthDp", "edgeWidthDp"), ("chamferDp", "chamferDp")]
+SHADOW_FIELDS = [("alpha", "alpha"), ("radiusDp", "radiusDp"), ("edgeAlpha", "edgeAlpha"), ("edgeWidthDp", "edgeWidthDp")]
 GLASS_FIELDS = [("surfaceAlpha", "surfaceAlpha", "f"), ("borderAlpha", "borderAlpha", "f"),
                 ("blurRadiusDp", "blurRadiusDp", "f"), ("glowAlpha", "glowAlpha", "f"), ("glowRadiusDp", "glowRadiusDp", "f")]
 
@@ -272,6 +272,14 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
     return doc, out
 
 
+def panel_chamfer(doc: dict) -> float:
+    """The panel cut (themes.json "panel.chamferDp"): straight 45° cuts on top-start and bottom-end."""
+    v = doc.get("panel", {}).get("chamferDp")
+    if not isinstance(v, (int, float)) or v < 0:
+        raise SystemExit("themes.json: panel.chamferDp must be a number >= 0")
+    return v
+
+
 def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin: str) -> str:
     doc, themes = resolve_themes(colors, roles)
     sha = hashlib.sha256(THEMES.read_bytes()).hexdigest()
@@ -282,7 +290,8 @@ def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin:
          "internal object GeneratedThemes {",
          f"    const val DEFAULT_ID = \"{doc['default']}\"",
          f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}",
-         f"    const val SHADOW_DEFAULT = {str(bool(doc.get('shadow', {}).get('enabled', False))).lower()}", "",
+         f"    const val SHADOW_DEFAULT = {str(bool(doc.get('shadow', {}).get('enabled', False))).lower()}",
+         f"    const val PANEL_CHAMFER_DP = {num(panel_chamfer(doc))}", "",
          "    val ALL: List<ThemePalette> = listOf("]
     for th, pal in themes:
         k.append(f"        ThemePalette(")

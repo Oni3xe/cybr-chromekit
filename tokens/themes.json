@@ -1,5 +1,5 @@
 {
-  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and must override nothing, so it stays identical to tokens.json. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and must override nothing, so it stays identical to tokens.json. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'panel' sets the panel cut for every theme. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
   "version": 1,
   "default": "red",
   "fixed": [
@@ -7,6 +7,10 @@
     "green",
     "gold"
   ],
+  "panel": {
+    "chamferDp": 10,
+    "$comment": "Panel shape in every theme, Shadow on or off: straight 45\u00b0 cuts of chamferDp on two opposite corners, top-start and bottom-end (mirrored in RTL); the other corners square. No rounding. Tabs, menus and the screen frame keep the single 6dp top-start chamfer from tokens.json."
+  },
   "glass": {
     "enabled": false,
     "surfaceAlpha": 0.55,
@@ -22,8 +26,7 @@
     "radiusDp": 14,
     "edgeAlpha": 0.9,
     "edgeWidthDp": 2,
-    "chamferDp": 10,
-    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). chamferDp: with Shadow on, panels get straight 45\u00b0 cuts on two opposite corners (top-start and bottom-end, like the OpSync tab cut); the band, glow and glass frame follow the cut outline. Shadow off keeps today's corners. Drawn strokes, never shadow()."
+    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). The band and glow follow the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
   },
   "themes": [
     {

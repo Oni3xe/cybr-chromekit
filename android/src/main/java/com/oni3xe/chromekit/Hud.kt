@@ -123,8 +123,8 @@ class ChamferShape(private val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
 }
 
 /**
- * 45° cuts on two opposite corners, top-start and bottom-end (the Shadow panel cut, like the
- * OpSync tab cut); the other two corners square. Straight lines, no rounding.
+ * 45° cuts on two opposite corners, top-start and bottom-end (the panel cut in every theme, like
+ * the OpSync tab cut); the other two corners square. Straight lines, no rounding.
  */
 class OpposingChamferShape(private val cut: Dp) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
@@ -520,7 +520,8 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
 }
 
 /**
- * Panel over other content: scrim fill, 1dp red.dim frame, 6dp top-start chamfer. With glass on
+ * Panel over other content: scrim fill, 1dp red.dim frame, straight 45° cuts on the top-start and
+ * bottom-end corners (`CybrTheme.tokens.shapes.panel`, 10dp, mirrored in RTL). With glass on
  * (`CybrTheme.tokens.glass`), the fill is translucent, the frame a light hairline and a soft
  * primary-accent glow is drawn behind (strokes, never shadow()). With Shadow on
  * (`CybrTheme.tokens.shadow`), a subtle primary-colour glow radiates outward from the edge.
@@ -529,9 +530,9 @@ fun Modifier.hudPanel(): Modifier = composed {
     val t = CybrTheme.tokens
     val g = t.glass
     val s = t.shadow
-    // Shadow on: top-start + bottom-end 45° cuts, and the band, glow and frame follow that outline.
-    val cut = s?.chamferDp?.dp ?: 0.dp
-    val shape = if (s == null) t.shapes.chamfer else remember(cut) { OpposingChamferShape(cut) }
+    // Every theme: top-start + bottom-end 45° cuts; the band, glow and frame follow that outline.
+    val cut = t.shapes.panelCut
+    val shape = t.shapes.panel
     val outer = if (s == null) this else shadowGlow(t.colors.red, s.alpha, s.radiusDp.dp, s.edgeAlpha, s.edgeWidthDp.dp, cut = cut)
     if (g == null) outer.clip(shape).background(t.colors.scrim).border(Px1, t.colors.redDim, shape)
     else outer.glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp, cut = cut).clip(shape).background(t.colors.scrim)

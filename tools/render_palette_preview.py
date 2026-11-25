@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_tokens import THEME_FIELDS, TOKENS, THEMES, resolve_themes  # noqa: E402
+from gen_tokens import THEME_FIELDS, TOKENS, THEMES, panel_chamfer, resolve_themes  # noqa: E402
 
 try:
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -27,6 +27,7 @@ except ImportError:
 
 KIT = Path(__file__).resolve().parents[1]
 KEYS = [key for _, key in THEME_FIELDS]
+PANEL_CUT = panel_chamfer(json.loads(THEMES.read_text()))
 S = 2                      # render scale (2x)
 CARD_W, CARD_H, COLS, PAD = 600, 500, 3, 24
 SW_COLS, SW_W, SW_H = 5, 108, 24
@@ -105,9 +106,9 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool, sha
     g = p["_glass"]
     x0, y0, x1, y1 = sc(ox, oy, ox + CARD_W, oy + CARD_H)
     sh = p["_shadow"]
-    cut = sh["chamferDp"] * S if shadow else 0
-    # Panel outline: Shadow on = 45° cuts on top-left and bottom-right; off = today's top-left chamfer.
-    outline = opposing(x0, y0, x1, y1, cut, 0) if shadow else chamfer(ox, oy, ox + CARD_W, oy + CARD_H, 10)
+    cut = PANEL_CUT * S
+    # Panel outline in every theme: 45° cuts on top-left and bottom-right (hudPanel / OpposingChamferShape).
+    outline = opposing(x0, y0, x1, y1, cut, 0)
     if shadow:  # Shadow, as shadowGlow() draws it: outer fade from alpha to 0, then the bright edge band
         e, r, steps = sh["edgeWidthDp"] * S, sh["radiusDp"] * S, 6
         band = max(r - e, 0) / steps
@@ -124,13 +125,10 @@ def card(img: Image.Image, ox: int, oy: int, th: dict, p: dict, glass: bool, sha
     ImageDraw.Draw(mask).polygon(outline, fill=255)
     if glass:
         img.paste(img.crop((x0, y0, x1, y1)).filter(ImageFilter.GaussianBlur(g["blurRadiusDp"] * S / 2)), (x0, y0), mask.crop((x0, y0, x1, y1)))
-        if shadow:
-            layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-            ImageDraw.Draw(layer).polygon(opposing(x0, y0, x1, y1, cut, g["glowRadiusDp"] * S / 2), outline=c["red"][:3] + (round(255 * g["glowAlpha"] * 0.6),),
-                                          width=max(1, round(g["glowRadiusDp"] * S / 2)))
-            img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(g["glowRadiusDp"] * S / 2)))
-        else:
-            glow(img, (x0, y0, x1, y1), c["red"], g["glowAlpha"] * 0.6, g["glowRadiusDp"])
+        layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+        ImageDraw.Draw(layer).polygon(opposing(x0, y0, x1, y1, cut, g["glowRadiusDp"] * S / 2), outline=c["red"][:3] + (round(255 * g["glowAlpha"] * 0.6),),
+                                      width=max(1, round(g["glowRadiusDp"] * S / 2)))
+        img.alpha_composite(layer.filter(ImageFilter.GaussianBlur(g["glowRadiusDp"] * S / 2)))
         over = Image.new("RGBA", img.size, (0, 0, 0, 0))
         ImageDraw.Draw(over).polygon(outline, fill=c["surface.1"][:3] + (round(255 * g["surfaceAlpha"]),),
                                      outline=c["red"] if shadow else c["text"][:3] + (round(255 * g["borderAlpha"]),), width=S)
