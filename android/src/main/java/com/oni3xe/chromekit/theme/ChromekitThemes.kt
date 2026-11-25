@@ -99,7 +99,9 @@ object ChromekitThemes {
     const val SHADOW_DEFAULT: Boolean = GeneratedThemes.SHADOW_DEFAULT
 
     val all: List<ChromekitThemeInfo> = GeneratedThemes.ALL.map { p ->
-        val tokens = if (p.id == "red") ChromekitTokens else ChromekitTokens.copy(colors = p.toColors())
+        // KATANA is tokens.json except bg (every theme's bg is a dark tint of its main colour)
+        val tokens = if (p.id == "red") ChromekitTokens.copy(colors = ChromekitTokens.colors.copy(bg = p.toColors().bg))
+            else ChromekitTokens.copy(colors = p.toColors())
         ChromekitThemeInfo(p.id, p.label, p.colorName, p.lowContrast, tokens, p.glass, p.shadow)
     }
 

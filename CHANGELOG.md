@@ -5,8 +5,15 @@
 - Shadow, round 3 (Oni3xe): no separate bright edge band; the fade starts brighter right at the
   border and tapers off a little wider. `themes.json` shadow: `alpha` 0.3 → 0.45, `radiusDp`
   8 → 10, `edgeAlpha` 0.9 → 0, `edgeWidthDp` 1 → 0. Still bands of at most 1px, no steps.
-- CHOPPER (noir) is much darker: `bg` `#07090C` → `#020304`, `surface.1` `#0E141A` → `#06090C`,
-  `surface.2` `#151E25` → `#0B1014`. No other theme changes.
+- Backgrounds: every theme's `bg` is a very dark tint of its main colour (3% of `red` per channel,
+  checked by `gen_tokens.py`; KATANA now overrides only `bg`): KATANA `#080303`, PHANTOM `#050408`,
+  EMBER `#080402`, ICEBREAKER `#020508`, SAKURA `#080306`, MATRIX `#030704`, NEON `#020607`,
+  SODIUM `#080602`, GHOST `#060606`, NOMAD `#060504`. Surfaces unchanged and stay above it.
+- CHOPPER (noir) is the exception, inverted (`invertedSurfaces`): `bg` is its former panel slate
+  `#0E141A`; `surface.1` `#0E141A` → `#07090C`, `surface.2` `#151E25` → `#0A0E13` (darker panels
+  and list items).
+- Launcher sync: new `background` column (`none` / `theme` / `default` / `import`,
+  `BackgroundMode`) on `SharedTheme`; missing or unknown values fail closed to `default`.
 
 - Shadow (Oni3xe's device test): smooth, narrower and subtler. `shadowGlow()` / `hudPanel()` draw
   bands of at most 1px with a continuous alpha (`shadowBands()`: edge alpha easing into the outer

@@ -14,7 +14,9 @@ import java.security.MessageDigest
  * - [COLUMN_SHARED] (Int 1/0): "Apply this theme to all cybr apps" is on;
  * - [COLUMN_GLASS], [COLUMN_SHADOW] (Int 1/0): the launcher's glass and Shadow toggles;
  * - [COLUMN_WALLPAPER] (String or null): `content://<AUTHORITY>/wallpaper/<id>`, served by the same
- *   provider's read-only openFile.
+ *   provider's read-only openFile;
+ * - [COLUMN_BACKGROUND] (String): the background mode, one of [BackgroundMode.value] (`none`,
+ *   `theme`, `default`, `import`). Missing or unknown = [BackgroundMode.DEFAULT].
  * No insert, update, delete or write-mode openFile. No permission: the client pins the launcher's
  * package and signing cert instead.
  */
@@ -29,6 +31,7 @@ object LauncherThemeContract {
     const val COLUMN_GLASS = "glass"
     const val COLUMN_SHADOW = "shadow"
     const val COLUMN_WALLPAPER = "wallpaper"
+    const val COLUMN_BACKGROUND = "background"
 
     private val WALLPAPER = Regex("^content://${Regex.escape(AUTHORITY)}/$WALLPAPER_PATH/[A-Za-z0-9_-]{1,64}$")
 
@@ -42,17 +45,42 @@ object LauncherThemeContract {
     /**
      * One provider row to a [SharedTheme], or null when it isn't shared or is malformed: the theme id
      * must be known and `shared` exactly 1. Glass and Shadow are on only for exactly 1 (anything else
-     * or missing = off); an invalid wallpaper is dropped. Fail closed throughout.
+     * or missing = off); an invalid wallpaper is dropped; a missing or unknown background mode is
+     * [BackgroundMode.DEFAULT]. Fail closed throughout.
      */
-    fun parse(themeId: String?, shared: Long?, glass: Long?, shadow: Long?, wallpaper: String?): SharedTheme? {
+    fun parse(
+        themeId: String?, shared: Long?, glass: Long?, shadow: Long?, wallpaper: String?,
+        background: String? = null,
+    ): SharedTheme? {
         if (shared != 1L) return null
         val theme = ChromekitThemes.find(themeId) ?: return null
-        return SharedTheme(theme.id, glass == 1L, shadow == 1L, validWallpaper(wallpaper))
+        return SharedTheme(theme.id, glass == 1L, shadow == 1L, validWallpaper(wallpaper), BackgroundMode.parse(background))
+    }
+}
+
+/**
+ * What an app draws behind its UI. [NONE]: pure black. [THEME]: the theme's `bg` (a very dark tint of
+ * its main colour). [DEFAULT]: the theme's bundled wallpaper (over `bg`). [IMPORT]: the user's own
+ * wallpaper, read through [SharedTheme.wallpaperUri]; without a usable one an app shows its default
+ * wallpaper instead.
+ */
+enum class BackgroundMode(val value: String) {
+    NONE("none"), THEME("theme"), DEFAULT("default"), IMPORT("import");
+
+    companion object {
+        /** Exact, case-sensitive match on [value]; anything else (or null) is [DEFAULT]. */
+        fun parse(value: String?): BackgroundMode = entries.firstOrNull { it.value == value } ?: DEFAULT
     }
 }
 
 /** The launcher's shared look, already validated. */
-data class SharedTheme(val themeId: String, val glass: Boolean, val shadow: Boolean, val wallpaperUri: String?)
+data class SharedTheme(
+    val themeId: String,
+    val glass: Boolean,
+    val shadow: Boolean,
+    val wallpaperUri: String?,
+    val background: BackgroundMode = BackgroundMode.DEFAULT,
+)
 
 /**
  * Placeholder, NOT a real certificate hash. TODO(Oni3xe): replace with the SHA-256 of
@@ -108,6 +136,7 @@ class LauncherThemeClient(private val context: Context, private val pin: String 
                     c.str(LauncherThemeContract.COLUMN_THEME), c.long(LauncherThemeContract.COLUMN_SHARED),
                     c.long(LauncherThemeContract.COLUMN_GLASS), c.long(LauncherThemeContract.COLUMN_SHADOW),
                     c.str(LauncherThemeContract.COLUMN_WALLPAPER),
+                    c.str(LauncherThemeContract.COLUMN_BACKGROUND),
                 )
             }
         }.getOrNull()

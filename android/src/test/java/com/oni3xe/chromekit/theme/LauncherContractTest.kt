@@ -52,4 +52,27 @@ class LauncherContractTest {
         assertEquals(base + "a".repeat(64), LauncherThemeContract.validWallpaper(base + "a".repeat(64)))
         assertEquals(base + "Wall-paper_2", LauncherThemeContract.validWallpaper(base + "Wall-paper_2"))
     }
+
+    @Test fun backgroundModeParsesExactValues() {
+        assertEquals(BackgroundMode.NONE, LauncherThemeContract.parse("red", 1, 0, 0, null, "none")!!.background)
+        assertEquals(BackgroundMode.THEME, LauncherThemeContract.parse("red", 1, 0, 0, null, "theme")!!.background)
+        assertEquals(BackgroundMode.DEFAULT, LauncherThemeContract.parse("red", 1, 0, 0, null, "default")!!.background)
+        val base = "content://${LauncherThemeContract.AUTHORITY}/wallpaper/"
+        val s = LauncherThemeContract.parse("red", 1, 0, 0, base + "custom_1", "import")!!
+        assertEquals(BackgroundMode.IMPORT, s.background)
+        assertEquals(base + "custom_1", s.wallpaperUri)
+    }
+
+    @Test fun unknownOrMissingBackgroundFallsBackToDefault() {
+        for (v in listOf(null, "", "NONE", "Theme", "black", "import ", "none;drop", "1")) {
+            assertEquals(v.toString(), BackgroundMode.DEFAULT, LauncherThemeContract.parse("red", 1, 0, 0, null, v)!!.background)
+        }
+        // Old launchers send no background column at all
+        assertEquals(BackgroundMode.DEFAULT, LauncherThemeContract.parse("red", 1, 0, 0, null)!!.background)
+    }
+
+    @Test fun backgroundNeverMakesAnUnsharedRowValid() {
+        assertNull(LauncherThemeContract.parse("red", 0, 0, 0, null, "theme"))
+        assertNull(LauncherThemeContract.parse("bogus", 1, 0, 0, null, "theme"))
+    }
 }

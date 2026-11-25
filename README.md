@@ -327,15 +327,17 @@ recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red
 - cybr-launcher's checkbox "Apply this theme to all cybr apps" shares **theme + glass + Shadow +
   wallpaper** through a read-only provider (`LauncherThemeContract`): authority
   `com.oni3xe.cybrlauncher.chromekit.theme`, `content://…/theme` returns one row with
-  `theme_id` (String), `shared`, `glass`, `shadow` (Int 1/0) and `wallpaper` (String or null,
+  `theme_id` (String), `shared`, `glass`, `shadow` (Int 1/0), `wallpaper` (String or null,
   `content://com.oni3xe.cybrlauncher.chromekit.theme/wallpaper/<id>`, id 1-64 of `A-Za-z0-9_-`,
-  served by the same provider's read-only `openFile`). No insert/update/delete, no write mode.
+  served by the same provider's read-only `openFile`) and `background` (String, `BackgroundMode`:
+  `none` = pure black, `theme` = the theme's `bg` tint, `default` = the theme's bundled wallpaper,
+  `import` = the user's own wallpaper via `wallpaper`; missing or unknown = `default`). No insert/update/delete, no write mode.
 - Other apps read it on start and on change (ContentObserver). They trust it only if the
   provider's package is `com.oni3xe.cybrlauncher` **and** its single current signing certificate's
   SHA-256 equals `LAUNCHER_CERT_SHA256` (`theme/LauncherThemeSync.kt`). Rows are validated fail
   closed: `shared` must be exactly 1 and the theme id known, or nothing is used; `glass`/`shadow`
   are on only for exactly 1; a wallpaper that isn't exactly the launcher provider's
-  `wallpaper/<id>` path is dropped. `ChromekitThemeState.openSharedWallpaper()` re-checks the URI
+  `wallpaper/<id>` path is dropped; `background` must match a mode exactly or is `default`. `ChromekitThemeState.openSharedWallpaper()` re-checks the URI
   and trust before opening it. Otherwise, or with sync off, apps use their local choices. The
   picker shows "Following launcher" with a "Use local" break-away; changing a theme, glass or
   Shadow while following also breaks away, keeping the rest of the launcher's look.

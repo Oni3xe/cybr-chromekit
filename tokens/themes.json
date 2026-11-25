@@ -1,5 +1,5 @@
 {
-  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and must override nothing, so it stays identical to tokens.json. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'panel' sets the panel cut for every theme. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and overrides only 'bg', so it is otherwise identical to tokens.json. 'bg' in every theme is a very dark tint of its main colour: 3% of 'red' per channel (checked by gen_tokens.py); the surfaces stay above it. Apps that want pure black use their own 'none' background, not a token. Exception: a theme with 'invertedSurfaces' (CHOPPER) breaks the tint rule on purpose: its bg is the dark slate its panels used to have, and its surfaces are darker than bg. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'panel' sets the panel cut for every theme. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
   "version": 1,
   "default": "red",
   "fixed": [
@@ -33,13 +33,14 @@
       "id": "red",
       "label": "KATANA",
       "color": "Red",
-      "colors": {}
+      "colors": {"bg": "#080303"}
     },
     {
       "id": "purple",
       "label": "PHANTOM",
       "color": "Purple",
       "colors": {
+        "bg": "#050408",
         "red.bright": "#C9A6FF",
         "red": "#B07CFF",
         "red.dim": "#7B57B2",
@@ -58,6 +59,7 @@
       "label": "EMBER",
       "color": "Orange",
       "colors": {
+        "bg": "#080402",
         "red.bright": "#FFAF7B",
         "red": "#FF8A3D",
         "red.dim": "#B2612B",
@@ -76,6 +78,7 @@
       "label": "ICEBREAKER",
       "color": "Blue",
       "colors": {
+        "bg": "#020508",
         "red.bright": "#86C0FF",
         "red": "#4DA3FF",
         "red.dim": "#3672B2",
@@ -94,6 +97,7 @@
       "label": "SAKURA",
       "color": "Pink",
       "colors": {
+        "bg": "#080306",
         "red.bright": "#FF92CF",
         "red": "#FF5FB8",
         "red.dim": "#B24281",
@@ -112,6 +116,7 @@
       "label": "MATRIX",
       "color": "Green",
       "colors": {
+        "bg": "#030704",
         "red.bright": "#8DECAF",
         "red": "#57E389",
         "red.dim": "#3D9F60",
@@ -130,6 +135,7 @@
       "label": "NEON",
       "color": "Cyan",
       "colors": {
+        "bg": "#020607",
         "red.bright": "#74E3EE",
         "red": "#33D6E6",
         "red.dim": "#2496A1",
@@ -148,6 +154,7 @@
       "label": "SODIUM",
       "color": "Amber",
       "colors": {
+        "bg": "#080602",
         "red.bright": "#FFCF74",
         "red": "#FFB833",
         "red.dim": "#B28124",
@@ -166,6 +173,7 @@
       "label": "GHOST",
       "color": "Monochrome",
       "colors": {
+        "bg": "#060606",
         "red.bright": "#DADADA",
         "red": "#C8C8C8",
         "red.dim": "#8C8C8C",
@@ -193,7 +201,7 @@
         "cyan": "#8FB3A8",
         "cyan.dim": "#5D746D",
         "cyan.deep": "#1F2725",
-        "bg": "#0E0B09",
+        "bg": "#060504",
         "surface.1": "#17120F",
         "surface.2": "#211A16",
         "text": "#A89F96",
@@ -205,11 +213,12 @@
     {
       "id": "noir",
       "label": "CHOPPER",
+      "invertedSurfaces": true,
       "color": "Noir",
       "colors": {
-        "bg": "#020304",
-        "surface.1": "#06090C",
-        "surface.2": "#0B1014",
+        "bg": "#0E141A",
+        "surface.1": "#07090C",
+        "surface.2": "#0A0E13",
         "red.bright": "#EE3B3E",
         "red": "#C8383C",
         "red.dim": "#84383A",

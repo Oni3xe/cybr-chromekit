@@ -15,9 +15,10 @@ class ThemeRegistryTest {
         )
     }
 
-    @Test fun redIsDefaultAndIdenticalToTodaysTokens() {
+    @Test fun redIsDefaultAndTodaysTokensExceptTheTintedBg() {
         assertEquals("red", ChromekitThemes.DEFAULT_ID)
-        assertSame(ChromekitTokens, ChromekitThemes.default.tokens)
+        val d = ChromekitThemes.default.tokens
+        assertEquals(ChromekitTokens.copy(colors = ChromekitTokens.colors.copy(bg = d.colors.bg)), d)
         assertEquals(ChromekitTokens.colors.red, ChromekitTokens.colors.warning)
     }
 
@@ -32,7 +33,7 @@ class ThemeRegistryTest {
         for (th in ChromekitThemes.all) {
             val c = th.tokens.colors
             listOf(c.bg, c.surface1, c.surface2, c.red, c.redBright, c.cyan, c.cyanBright, c.text).forEach { assertNotEquals(th.id, white, it) }
-            assertTrue("${th.id} bg is dark", c.bg.red < 0.1f && c.bg.green < 0.1f && c.bg.blue < 0.1f)
+            assertTrue("${th.id} bg is dark", c.bg.red < 0.11f && c.bg.green < 0.11f && c.bg.blue < 0.11f) // CHOPPER slate #0E141A
             assertEquals(th.id, ChromekitTokens.colors.warning, c.warning)
             assertEquals(th.id, ChromekitTokens.colors.green, c.green)
             assertEquals(th.id, ChromekitTokens.colors.gold, c.gold)
@@ -115,12 +116,27 @@ class ThemeRegistryTest {
         assertEquals(listOf("mocha"), ChromekitThemes.all.filter { it.lowContrast }.map { it.id })
     }
 
-    @Test fun chopperIsNearBlack() {
-        val c = ChromekitThemes.byId("noir").tokens.colors
-        for (col in listOf(c.bg, c.surface1, c.surface2)) {
-            assertTrue(col.red < 0.05f && col.green < 0.07f && col.blue < 0.09f)
+    @Test fun backgroundIsAVeryDarkTintOfTheMainColour() {
+        for (th in ChromekitThemes.all.filter { it.id != "noir" }) {
+            val c = th.tokens.colors
+            for ((bg, red) in listOf(c.bg.red to c.red.red, c.bg.green to c.red.green, c.bg.blue to c.red.blue)) {
+                assertEquals(th.id, red * 0.03f, bg, 1.5f / 255f)
+            }
+            // Surfaces stay readable above it
+            val sum = { col: androidx.compose.ui.graphics.Color -> col.red + col.green + col.blue }
+            assertTrue(th.id, sum(c.surface1) > sum(c.bg) * 1.5f)
+            assertTrue(th.id, sum(c.surface2) > sum(c.surface1))
+            assertTrue(th.id, sum(c.bg) > 0f)
         }
-        // Much darker than the original CHOPPER background (#07090C)
-        assertTrue((c.bg.red + c.bg.green + c.bg.blue) * 255f < (0x07 + 0x09 + 0x0C) / 2f)
+    }
+
+    @Test fun chopperIsInvertedSlateBackgroundDarkerPanels() {
+        val c = ChromekitThemes.byId("noir").tokens.colors
+        // bg = CHOPPER's former panel colour; panels and list items darker than it
+        assertEquals(androidx.compose.ui.graphics.Color(0xFF0E141A), c.bg)
+        val sum = { col: androidx.compose.ui.graphics.Color -> col.red + col.green + col.blue }
+        assertTrue(sum(c.surface1) * 1.5f < sum(c.bg))
+        assertTrue(sum(c.surface2) < sum(c.bg))
+        assertTrue(sum(c.surface1) > 0f)
     }
 }

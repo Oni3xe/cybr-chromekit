@@ -267,9 +267,24 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
     if doc.get("default") not in seen:
         raise SystemExit("themes.json: \"default\" must name a theme")
     first = doc["themes"][0]
-    if first["id"] != "red" or first.get("colors"):
-        raise SystemExit("themes.json: the first theme must be \"red\" with no overrides (identical to tokens.json)")
+    if first["id"] != "red" or set(first.get("colors", {})) - {"bg"}:
+        raise SystemExit("themes.json: the first theme must be \"red\" overriding only \"bg\" (otherwise identical to tokens.json)")
+    for th, pal in out:
+        lum = lambda k: sum(int(pal[k][i:i + 2], 16) for i in (1, 3, 5))
+        if th.get("invertedSurfaces"):
+            # CHOPPER: bg is the slate, panels and list items darker than it
+            if not (lum("surface.1") < lum("bg") and lum("surface.2") < lum("bg")):
+                raise SystemExit(f"themes.json: theme {th['id']} has invertedSurfaces, so its surfaces must be darker than bg")
+            continue
+        # bg: a very dark tint of the theme's main colour (3% of red), below surface.1
+        want = tuple(round(int(pal["red"][i:i + 2], 16) * BG_TINT) for i in (1, 3, 5))
+        got = tuple(int(pal["bg"][i:i + 2], 16) for i in (1, 3, 5))
+        if any(abs(a - b) > 1 for a, b in zip(want, got)):
+            raise SystemExit(f"themes.json: theme {th['id']} bg must be the {BG_TINT:.0%} tint of its red: #{''.join('%02X' % v for v in want)}")
     return doc, out
+
+
+BG_TINT = 0.03
 
 
 def panel_chamfer(doc: dict) -> float:
