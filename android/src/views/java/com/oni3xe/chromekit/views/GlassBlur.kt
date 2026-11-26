@@ -70,9 +70,11 @@ object GlassBlurMath {
 }
 
 /**
- * Theme-`bg` colour overlay drawn over the (possibly blurred) wallpaper by
- * `Modifier.chromekitGlassBackground`. There was previously no tint (alpha 0): the raw wallpaper
- * sat behind the UI. These alphas keep the blur visible while making text readable.
+ * Theme-`bg` colour overlay drawn *inside* a chamfered `hudScreenFrame` by
+ * `Modifier.chromekitGlassTint` / `HudWindow`. The edge-to-edge wallpaper stays in
+ * `chromekitGlassBackground` (blur only) so the status-bar area is not a solid bezel.
+ * Previously there was no tint (alpha 0). These alphas keep the blur visible while making
+ * text readable.
  */
 object GlassBackdropTint {
     /** API 31+ when a blur is applied: a step up that still shows the blurred wallpaper. */

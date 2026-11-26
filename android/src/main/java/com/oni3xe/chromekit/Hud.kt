@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.oni3xe.chromekit.theme.CybrTheme
+import com.oni3xe.chromekit.theme.chromekitGlassTint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -499,14 +500,15 @@ fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifie
 
 /**
  * Screen frame: 1dp red.dim with the 6dp chamfer on the top-start and bottom-end corners (mirrored
- * in RTL). Content is **clipped** to [ChamferShape], so wallpaper, glass and children stay inside
+ * in RTL). Content is **clipped** to [ChamferShape], so the glass tint and children stay inside
  * the cut. The cut corners are not filled with `bg` — that painted a solid ear past the frame
  * line. The stroke is inset half a border so it stays inside the clip. With Shadow on
  * (`CybrTheme.tokens.shadow`) the frame turns primary and the Shadow glow fades **inward** from
  * the frame line ([screenFrameShadowBands]). Shadow off draws no glow.
  *
- * Put the app's backdrop (wallpaper / `chromekitGlassBackground`) *inside* this modifier, not as a
- * sibling behind it; the area outside the frame then shows the parent (typically [HudWindow]).
+ * Draw the wallpaper / `chromekitGlassBackground` *behind* this modifier (edge to edge, including
+ * the status and navigation bars). Put the theme-`bg` tint ([chromekitGlassTint]) and the UI
+ * *inside* it. [HudWindow] composes that layout.
  */
 fun Modifier.hudScreenFrame(): Modifier = composed {
     val t = CybrTheme.tokens
@@ -528,19 +530,26 @@ fun Modifier.hudScreenFrame(): Modifier = composed {
 }
 
 /**
- * The app window: an opaque [outside] bezel (default pure black, [Tokens.Color.BG]) with a
- * chamfered [hudScreenFrame] over it. Draw the wallpaper/glass backdrop first inside [content],
- * then the UI; both stay clipped to the cut. [modifier] is applied to the framed inner box
- * (safe-drawing insets, a margin around the frame).
+ * Edge-to-edge app window (MaxDoc-style): [backdrop] fills the whole window behind transparent
+ * system bars; [modifier] (safe-drawing insets, a margin) is applied to a chamfered
+ * [hudScreenFrame] over it. The frame clips its children and, when glass is on, draws the
+ * theme-`bg` tint ([chromekitGlassTint], alpha 0.65 blurred / 0.70 pre-31) inside the cut only —
+ * never as a solid bezel outside the frame. Draw wallpaper / `chromekitGlassBackground` (blur,
+ * no tint) in [backdrop].
  */
 @Composable
 fun HudWindow(
     modifier: Modifier = Modifier,
-    outside: Color = Color(Tokens.Color.BG),
+    backdrop: @Composable BoxScope.() -> Unit = {},
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().background(outside)) {
-        Box(modifier.fillMaxSize().hudScreenFrame(), content = content)
+    val t = CybrTheme.tokens
+    Box(Modifier.fillMaxSize()) {
+        backdrop()
+        Box(modifier.fillMaxSize().hudScreenFrame()) {
+            if (t.glass != null) Box(Modifier.matchParentSize().chromekitGlassTint(t))
+            content()
+        }
     }
 }
 

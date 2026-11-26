@@ -273,9 +273,11 @@ are square. chromekit has no single-corner cut. Two sizes, unchanged:
 
 Both are built from one outline, `opposingChamferOutline()` (pure math, also used for the Shadow
 band and glass glow, inflated so the cut stays parallel). `hudScreenFrame()` clips content to
-`ChamferShape` (use `HudWindow` to draw a bezel outside the cut, and put the wallpaper/glass
-backdrop inside the frame). `chamferCornerTriangles()` is the geometry of the two cut corners,
-which sit outside the outline. Views apps build the same outline from their own corners array.
+`ChamferShape`. `HudWindow` draws the wallpaper edge to edge behind transparent system bars,
+with the chamfered frame inset over it and the glass tint clipped inside the cut (no solid
+bezel, no painted corner triangles). `chamferCornerTriangles()` is the geometry of the two cut
+corners, which sit outside the outline. Views apps build the same outline from their own corners
+array.
 `check_standard.py` fails on curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD
 files, and on hand-built paths (`moveTo` / `lineTo` with literal coordinates) in the shared HUD files
 and an app's `check.outlines` files, so every cut stays straight and paired.
@@ -295,8 +297,9 @@ follows the panel cut outline; `CybrTheme.tokens.shadow` is non-null when on.
 
 With glass on, `CybrTheme.tokens.glass` is non-null and the surfaces are translucent; `hudPanel()`
 keeps its frame colour (`red.dim`, primary with Shadow) and draws no glow, and the app blurs its
-own background layer with `Modifier.chromekitGlassBackground(tokens)` (theme-`bg` tint at alpha
-0.65 when blurred, 0.70 on the pre-31 fallback; draw this *inside* `hudScreenFrame()`).
+own edge-to-edge background layer with `Modifier.chromekitGlassBackground(tokens)`. The theme-`bg`
+tint (alpha 0.65 when blurred, 0.70 on the pre-31 fallback) is `Modifier.chromekitGlassTint(tokens)`,
+drawn *inside* `hudScreenFrame()` (`HudWindow` does this).
 `Modifier.chromekitGlassGlow(tokens)` adds the glass glow to a key element (clock, active button).
 No new dependency.
 
