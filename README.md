@@ -131,7 +131,7 @@ What the module provides:
 - `Hud.kt` (`com.oni3xe.chromekit`):
   - the press modifier (`hudPress`, `HudPress`, `PressPhase`): 140 ms latch, step-off, `KEYBOARD_TAP` haptic, glow drawn as strokes;
   - `HudButton`, `HudTab`, `HudActionBar` with the `[ ... ]` menu (`HudMenuHost`, `HudMenuState`);
-  - `HudHeader`, `hudScreenFrame`, `hudPanel`, `HudRule`, `HudTextField` (block cursor), `HudProgress`, `HudEmptyState`;
+  - `HudHeader`, `hudScreenFrame`, `HudWindow`, `hudPanel`, `HudRule`, `HudTextField` (block cursor), `HudProgress`, `HudEmptyState`;
   - `ChamferShape`, `LocalReduceMotion` and `systemReduceMotion`.
 - `theme/CybrTheme.kt` (`com.oni3xe.chromekit.theme`): `CybrTheme`, `CybrTokens` and its colours, type, spacing and shapes, `ChromekitTokens` (deprecated alias: `CybrcoreTokens`), `Rajdhani`, `JetBrainsMono`.
 - `Tokens.kt` (`com.oni3xe.chromekit`): the kit's own generated tokens; apps keep theirs.
@@ -257,29 +257,51 @@ only token a theme may set to white; `gen_tokens.py` refuses white anywhere else
 |---|---|---|
 | `enabled` | `false` | default for the user's glass toggle |
 | `surfaceAlpha` | `0.55` | opacity of `surface.1`, `surface.2` and `scrim` (frosted panels) |
-| `borderAlpha` | `0.22` | panel hairline: the theme's `text` colour at this alpha |
+| `borderAlpha` | `0.22` | a light hairline (the theme's `text` colour at this alpha) for an app's own use; panel frames keep their colour in glass mode |
 | `blurRadiusDp` | `12` | background blur, API 31+ (`Modifier.blur`/RenderEffect); none below, panels stay translucent |
-| `glowAlpha` | `0.30` | soft primary-accent glow on panels and key elements (CHOPPER: `0.45`) |
+| `glowAlpha` | `0.30` | soft primary-accent glow on key elements, not panels (CHOPPER: `0.45`) |
 | `glowRadiusDp` | `10` | glow reach, drawn as strokes, never `shadow()` |
 
-**Panel shape (every theme):** panels (`hudPanel()`, `CybrTheme.tokens.shapes.panel`,
-`OpposingChamferShape`) have straight 45° cuts of 10dp on two opposite corners, top-start and
-bottom-end, mirrored in RTL; the other corners are square. This replaces the panels' single
-top-start cut. Tabs, menus and the screen frame keep the 6dp top-start chamfer. The size is
-`themes.json` `panel.chamferDp` (and `tokens.json` `shape.panelCut`). `check_standard.py` fails on
-curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD files, so the cuts stay straight.
+**Cut shape (every theme):** every cut corner comes in a pair: straight 45° cuts on two opposite
+corners, top-start and bottom-end, mirrored in RTL (top-right and bottom-left); the other corners
+are square. chromekit has no single-corner cut. Two sizes, unchanged:
 
-**Shadow**, off by default and independent of glass: a neon glow in the theme's primary colour,
-brightest in a band right at each panel's border and fading outward (`hudPanel()` /
-`shadowGlow()`, drawn strokes, square); with glass on, panels also get a 1dp primary frame.
-`themes.json` `"shadow"`: `enabled` `false`, `alpha` `0.45`, `radiusDp` `14`, `edgeAlpha` `0.9`,
-`edgeWidthDp` `2` (per-theme overrides allowed); the band and glow follow the panel cut outline;
-`CybrTheme.tokens.shadow` is non-null when on.
+| size | where | shape |
+|---|---|---|
+| 6dp (`tokens.json` `shape.chamfer.sizeDp`) | tabs, menus, dialogs, toasts, the screen frame (`hudScreenFrame()`) | `CybrTheme.tokens.shapes.chamfer`, `ChamferShape` |
+| 10dp (`themes.json` `panel.chamferDp`, `tokens.json` `shape.panelCut`) | panels (`hudPanel()`) | `CybrTheme.tokens.shapes.panel`, `OpposingChamferShape` |
 
-With glass on, `CybrTheme.tokens.glass` is non-null, the surfaces are translucent, `hudPanel()`
-draws the light hairline and glow, and the app blurs its own background layer with
-`Modifier.chromekitGlassBackground(tokens)`; `Modifier.chromekitGlassGlow(tokens)` adds the glow to a
-key element (clock, active button). No new dependency.
+Both are built from one outline, `opposingChamferOutline()` (pure math, also used for the Shadow
+band and glass glow, inflated so the cut stays parallel). `hudScreenFrame()` clips content to
+`ChamferShape`. `HudWindow` draws the wallpaper edge to edge behind transparent system bars,
+with the chamfered frame inset over it and the glass tint clipped inside the cut (no solid
+bezel, no painted corner triangles). `chamferCornerTriangles()` is the geometry of the two cut
+corners, which sit outside the outline. Views apps build the same outline from their own corners
+array.
+`check_standard.py` fails on curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD
+files, and on hand-built paths (`moveTo` / `lineTo` with literal coordinates) in the shared HUD files
+and an app's `check.outlines` files, so every cut stays straight and paired.
+`tokens.json` still describes the 6dp chamfer as `top-start` (`shape.chamfer.corner`, `tab.chamfer`,
+`menuPanel.chamfer`); the kit applies it to both corners, and the wording follows with the next
+design-vault tokens version (token values are unchanged).
+
+**Shadow**, off by default and independent of glass: a soft neon glow in the theme's primary
+colour, starting at `alpha` right at each panel's border and fading smoothly outward (`hudPanel()` /
+`shadowGlow()`). It is drawn as bands of at most 1px whose alpha eases continuously
+(`shadowBands()`: a quadratic fade from `alpha` to 0 at `radiusDp`; an optional edge band of
+`edgeAlpha` over `edgeWidthDp` eases into it, off in every theme), so there are no visible steps.
+With Shadow on, panels get a 1dp primary frame. **Shadow off draws nothing at all**, glass or not
+(`panelShadowBands()` is empty; tested). The screen frame (`hudScreenFrame()`) glows inward from its frame line instead (`screenFrameShadowBands()`), also only with Shadow on. `themes.json` `"shadow"`: `enabled` `false`, `alpha`
+`0.45`, `radiusDp` `10`, `edgeAlpha` `0`, `edgeWidthDp` `0` (per-theme overrides allowed); the glow
+follows the panel cut outline; `CybrTheme.tokens.shadow` is non-null when on.
+
+With glass on, `CybrTheme.tokens.glass` is non-null and the surfaces are translucent; `hudPanel()`
+keeps its frame colour (`red.dim`, primary with Shadow) and draws no glow, and the app blurs its
+own edge-to-edge background layer with `Modifier.chromekitGlassBackground(tokens)`. The theme-`bg`
+tint (alpha 0.65 when blurred, 0.70 on the pre-31 fallback) is `Modifier.chromekitGlassTint(tokens)`,
+drawn *inside* `hudScreenFrame()` (`HudWindow` does this).
+`Modifier.chromekitGlassGlow(tokens)` adds the glass glow to a key element (clock, active button).
+No new dependency.
 
 Edit a palette: change `tokens/themes.json`, run `python3 tools/gen_tokens.py` (writes
 `android/.../theme/Themes.kt`), then
@@ -311,20 +333,38 @@ recomposes immediately when it changes. `CybrTheme` keeps working unchanged (Red
 - cybr-launcher's checkbox "Apply this theme to all cybr apps" shares **theme + glass + Shadow +
   wallpaper** through a read-only provider (`LauncherThemeContract`): authority
   `com.oni3xe.cybrlauncher.chromekit.theme`, `content://…/theme` returns one row with
-  `theme_id` (String), `shared`, `glass`, `shadow` (Int 1/0) and `wallpaper` (String or null,
+  `theme_id` (String), `shared`, `glass`, `shadow` (Int 1/0), `wallpaper` (String or null,
   `content://com.oni3xe.cybrlauncher.chromekit.theme/wallpaper/<id>`, id 1-64 of `A-Za-z0-9_-`,
-  served by the same provider's read-only `openFile`). No insert/update/delete, no write mode.
+  served by the same provider's read-only `openFile`) and `background` (String, `BackgroundMode`:
+  `none` = pure black, `theme` = the theme's `bg` tint, `default` = the theme's bundled wallpaper,
+  `import` = the user's own wallpaper via `wallpaper`; missing or unknown = `default`; a `default`
+  row that names a `wallpaper` (the launcher's bundled theme wallpaper) parses to `IMPORT` on the
+  app side, so apps draw it like an imported photo) and
+  `blur_style` (String, `plain` / `glass`; missing or unknown = `glass`). No insert/update/delete,
+  no write mode. Both ends share one definition, `views/ThemeSyncWire` (the launcher builds its rows
+  with `ThemeSyncWire.row`).
 - Other apps read it on start and on change (ContentObserver). They trust it only if the
   provider's package is `com.oni3xe.cybrlauncher` **and** its single current signing certificate's
   SHA-256 equals `LAUNCHER_CERT_SHA256` (`theme/LauncherThemeSync.kt`). Rows are validated fail
   closed: `shared` must be exactly 1 and the theme id known, or nothing is used; `glass`/`shadow`
   are on only for exactly 1; a wallpaper that isn't exactly the launcher provider's
-  `wallpaper/<id>` path is dropped. `ChromekitThemeState.openSharedWallpaper()` re-checks the URI
+  `wallpaper/<id>` path is dropped; `background` must match a mode exactly or is `default`. `ChromekitThemeState.openSharedWallpaper()` re-checks the URI
   and trust before opening it. Otherwise, or with sync off, apps use their local choices. The
   picker shows "Following launcher" with a "Use local" break-away; changing a theme, glass or
   Shadow while following also breaks away, keeping the rest of the launcher's look.
 - `LAUNCHER_CERT_SHA256` is currently `LAUNCHER_CERT_SHA256_PLACEHOLDER`: until Oni3xe pins the
-  launcher's release certificate hash there, sync **fails closed** (no provider is even queried).
+  launcher's release certificate hash there, release builds **fail closed** (no provider is even
+  queried).
+- Debug builds: pass `allowDebug = BuildConfig.DEBUG` once, before anything else reads the theme
+  (`ChromekitTheme(state = rememberChromekitThemeState(allowDebug = BuildConfig.DEBUG)) { … }`, or
+  `ChromekitThemeState.get(context, BuildConfig.DEBUG)` in a Service/IME), and enable
+  `android { buildFeatures { buildConfig = true } }`. Then a launcher signed with the box debug key
+  (`LAUNCHER_DEBUG_CERT_SHA256`, `cae5089a…8772`) is trusted too; release builds never trust it.
+  The state is one per process and only upgrades to debug trust, never down.
+- Blur style: with glass on, `BlurStyle.GLASS` (default) adds bloom, a saturation/tone boost, fine
+  grain and a light band on panel edges; `PLAIN` is the blur alone. Wrap the background layer in
+  `Modifier.chromekitGlassBackground(CybrTheme.tokens)`; `hudPanel()` draws the band. Views apps:
+  add `chromekit/android/src/views/java` as a source dir and use `GlassBlur`.
 - Release signing stays per app. The kit's manifest adds only a `<queries>` entry for the
   launcher's package (Android 11+ package visibility). No permissions, no INTERNET, no telemetry.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI checks for chromekit (v1.2), for Compose and Views apps.
+"""CI checks for chromekit (v1.2.x), for Compose and Views apps.
 
 Run from the consuming repo's root (the directory holding chromekit.json):
 
@@ -16,7 +16,10 @@ chromekit.json, "check" section (paths relative to the repo root):
       "generated": [...],           # generated token files (skipped)
       "exceptions": [[path_regex, line_regex, reason], ...],   # named exceptions
       # compose only:
-      "hud": [...],                 # shared HUD files: indication = null allowed, no TextOverflow.Ellipsis
+      "hud": [...],                 # shared HUD files: indication = null allowed, no TextOverflow.Ellipsis,
+                                    # cut outlines from the shared double-cut outline only
+      "outlines": [...],            # both profiles, optional: more files whose paths must come from a
+                                    # double-cut corners array (e.g. a Views app's frame and icon shapes)
       "materialRules": true,        # also fail on rounded Material widgets and non-zero RoundedCornerShape
       # views only:
       "hudDirs": [...],             # directories whose Hud*.kt never set ellipsize
@@ -31,9 +34,13 @@ Compose profile fails on (UI-Standard-v1.1 "Enforcement"):
     a theme may set to white (Oni3xe's explicit exception, chromekit 1.2.0 themes);
   - FlowRow or horizontalScroll (buttons never wrap or scroll sideways; one row of buttons);
   - curves (quadraticTo, cubicTo, arcTo, addRoundRect, addOval, ...) in the shared HUD files: panel
-    and tab outlines are straight lines only. Square corners or 45° cuts: the 6dp top-start chamfer
-    on tabs, menus and the screen frame, and the panel cut on two opposite corners (top-start and
-    bottom-end, 10dp, mirrored in RTL; chromekit 1.2.0). A 45° cut is not rounding;
+    and tab outlines are straight lines only. Square corners or 45° cuts, always on two opposite
+    corners, top-start and bottom-end, mirrored in RTL: the 6dp chamfer on tabs, menus, dialogs,
+    toasts and the screen frame, the 10dp panel cut on panels. A 45° cut is not rounding;
+  - a hand-built path (moveTo / lineTo with literal coordinates) in the shared HUD files or the
+    "outlines" files: every cut outline is built from the points of the shared double-cut outline
+    (Hud.kt opposingChamferOutline, or the app's corners array), so no single-corner cut can creep
+    back in;
   - TextOverflow.Ellipsis in the shared buttons and tabs (the "hud" files);
   - indication = null outside the shared press modifier (the "hud" files);
   - shadow() used as a glow (Modifier.shadow, setShadowLayer);
@@ -51,7 +58,9 @@ Views profile fails on:
   - shadow glows (setShadowLayer, shadowColor): glows are drawn strokes;
   - ellipsize on the shared Hud components (labels are never truncated);
   - palette sentinel colours (@color/grey_*, search_bg, palette_option) in the tokens-only layouts,
-    which are never repainted, so a sentinel would render as-is (grey or near-white).
+    which are never repainted, so a sentinel would render as-is (grey or near-white);
+  - a hand-built path (moveTo / lineTo with literal coordinates) in the "outlines" files: cut
+    outlines come from a double-cut corners array (top-start + bottom-end).
   The Compose-only rules (indication = null, shadow(), FlowRow, TextOverflow) have no equivalent
   there; the Views checks cover the same ground.
 """
@@ -81,6 +90,10 @@ C_MATERIAL = [
 # Shared HUD files only (apps may draw curves elsewhere, e.g. launcher icon masks).
 C_HUD_STRAIGHT = re.compile(r"\b(quadraticTo|quadraticBezierTo|relativeQuadraticTo|cubicTo|relativeCubicTo|arcTo|arcToRad|addArc|addRoundRect|addOval)\b")
 C_HUD_ONLY = [(re.compile(r"indication\s*=\s*null"), True, "indication = null only inside the shared press modifier")]
+# Both profiles: in outline files a path point must be read from a points array (p[0], p[i + 1], ...).
+HAND_PATH = re.compile(r"\b(moveTo|lineTo)\(\s*(?![A-Za-z_]\w*\[)")
+HAND_PATH_WHY = ("cut outlines come from the shared double-cut outline (top-start + bottom-end), "
+                 "never a hand-built path")
 
 # ---- Views profile ---------------------------------------------------------------------------
 V_HEX = re.compile(r"(?<![\w&])#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6})\b|\b0x[0-9A-Fa-f]{8}\b")
@@ -118,6 +131,7 @@ def compose_strip(line: str, suffix: str) -> str:
 def check_compose(root: Path, c: dict, files: list) -> list:
     problems = []
     hud = set(c.get("hud", []))
+    outlines = hud | set(c.get("outlines", []))
     gen = set(c.get("generated", []))
     ex = c.get("exceptions", [])
     rules = C_BASE + (C_MATERIAL if c.get("materialRules") else []) + C_HUD_ONLY
@@ -138,6 +152,8 @@ def check_compose(root: Path, c: dict, files: list) -> list:
                     problems.append(f"{rel}:{n}: {why}: {line.strip()}")
             if rel in hud and C_HUD_STRAIGHT.search(code):
                 problems.append(f"{rel}:{n}: panel and tab outlines are straight lines (square or 45° cuts), never curves: {line.strip()}")
+            if rel in outlines and path.suffix == ".kt" and HAND_PATH.search(code):
+                problems.append(f"{rel}:{n}: {HAND_PATH_WHY}: {line.strip()}")
             if rel in hud and "TextOverflow.Ellipsis" in code:
                 problems.append(f"{rel}:{n}: buttons and tabs are never truncated: {line.strip()}")
     return problems
@@ -145,6 +161,7 @@ def check_compose(root: Path, c: dict, files: list) -> list:
 
 def check_views(root: Path, c: dict, files: list) -> list:
     problems = []
+    outlines = set(c.get("outlines", []))
     gen = set(c.get("generated", []))
     ex = c.get("exceptions", [])
     for path in files:
@@ -164,6 +181,8 @@ def check_views(root: Path, c: dict, files: list) -> list:
             for rx, why in V_RULES:
                 if rx.search(code):
                     problems.append(f"{rel}:{n}: {why}: {line.strip()}")
+            if rel in outlines and path.suffix == ".kt" and HAND_PATH.search(code):
+                problems.append(f"{rel}:{n}: {HAND_PATH_WHY}: {line.strip()}")
     for d in c.get("hudDirs", []):
         for path in (root / d).glob("Hud*.kt"):
             for n, line in enumerate(path.read_text().splitlines(), 1):

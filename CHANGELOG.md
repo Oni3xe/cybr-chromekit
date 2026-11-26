@@ -2,6 +2,88 @@
 
 ## Unreleased
 
+- `HudWindow` is MaxDoc-style edge-to-edge: the backdrop fills the whole window (behind
+  transparent status and navigation bars); the chamfered `hudScreenFrame` sits inset over it.
+  The previous opaque `Tokens.Color.BG` bezel showed as a solid-black band above the frame
+  (OpSync device shot). `hudScreenFrame()` still clips to `ChamferShape` and does not paint
+  the cut-corner triangles (the earlier ear).
+- Glass tint lives *inside* the frame only (`chromekitGlassTint`, applied by `HudWindow` when
+  glass is on): theme `bg` at alpha `0.65` when blurred, `0.70` on the pre-31 fallback
+  (`GlassBackdropTint`). `chromekitGlassBackground` is blur/grain only, for the edge-to-edge
+  wallpaper layer. Previously there was no tint (alpha 0).
+- Theme sync: a `default` background row with a valid `wallpaper` URI (the launcher's bundled theme
+  wallpaper, served through the same validated, trust-checked URI) parses to `BackgroundMode.IMPORT`
+  (`LauncherThemeContract.effectiveBackground`), so apps that draw the shared image for IMPORT now
+  show it instead of a flat colour (cybr-launcher #33). Wire, pinning and validation unchanged.
+- Glitch overlay (`views/Glitch.kt`, cybr-launcher only, not synced): `GlitchOverlayView`,
+  `GlitchType` (scanlines / rgb / tear / blocks), `GlitchSpec` (strength 1-3, frequency 1-3, tinted), `GlitchMath`, `GlitchInk`. Tinted draws every
+  mark in the main colour only at 1.8x alpha (max 0.45). First
+  burst 1-2s after it starts running (turned on, back on screen), then 160-420ms bursts at ~20fps
+  every 3-12s at frequency 1 (at most 15% of the time drawing); frequency 2 / 3 shorten the gaps to
+  0.6x / 0.35x, never under 1.5s (at most 25% / 30% drawing); idle with no frames in between; stops while
+  detached, hidden or its window isn't visible. Off with reduced motion = system animator duration
+  scale 0 (developer option or "remove animations"). Alpha 0.14 / 0.20 / 0.28. `burstNow()` for a
+  settings preview. Tested.
+- Theme sync, debug trust: `LAUNCHER_DEBUG_CERT_SHA256` (the box debug key, public) and an
+  `allowDebug` parameter on `LauncherThemeClient`, `LauncherTrust.isTrusted`/`acceptedPins`,
+  `ChromekitThemeState.get(context, allowDebug)` and `rememberChromekitThemeState(allowDebug)`. Apps
+  pass `BuildConfig.DEBUG`; the debug pin is accepted only then. The release pin is still the
+  placeholder, so release builds stay fail-closed (no IPC). Package and single-signer checks apply
+  to both pins.
+- One wire format for both ends: `views/ThemeSyncWire` (authority, path, columns, wallpaper URIs,
+  `row()`); `LauncherThemeContract` aliases it and the launcher's provider builds its rows with it.
+  New column `blur_style` (`plain` / `glass`; missing or unknown = glass). `ResolvedTheme` and
+  `ChromekitThemeState` now expose `background` and `blurStyle`.
+- Blur style: `BlurStyle.PLAIN` (blur only) and `BlurStyle.GLASS` (default): blur + saturation/tone
+  boost + soft bloom on bright areas + fine grain, and a subtle light band inside `hudPanel()`
+  frames. API 33+: one AGSL `RuntimeShader` chained after the blur; API 31-32: colour matrix + grain
+  overlay; below 31: grain overlay only (no blur, as before). Numbers in `themes.json` `blurStyle`
+  (`BLUR_GLASS_*`). Framework-only code lives in `android/src/views/java` (`GlassBlur`,
+  `GlassBlurMath`, `BlurStyle`, `ThemeSyncWire`) so Views apps compile the same code
+  (`sourceSets.main.java.srcDir("chromekit/android/src/views/java")`).
+  `CybrTokens.glassBlur`, `theme.tokens(glass, shadow, blurStyle)`, `ThemeSettings.blurStyle`,
+  `ChromekitThemeState.useBlurStyle()`.
+
+- `hudScreenFrame()` draws the Shadow too, gated by `CybrTheme.tokens.shadow`: the same smooth fade
+  as panels, but inward from the frame line (a full-screen frame has no room outside), and the frame
+  turns primary. Shadow off draws no glow. Geometry: `screenFrameShadowBands()` (tested).
+- Shadow, round 3 (Oni3xe): no separate bright edge band; the fade starts brighter right at the
+  border and tapers off a little wider. `themes.json` shadow: `alpha` 0.3 → 0.45, `radiusDp`
+  8 → 10, `edgeAlpha` 0.9 → 0, `edgeWidthDp` 1 → 0. Still bands of at most 1px, no steps.
+- Backgrounds: every theme's `bg` is a very dark tint of its main colour (3% of `red` per channel,
+  checked by `gen_tokens.py`; KATANA now overrides only `bg`): KATANA `#080303`, PHANTOM `#050408`,
+  EMBER `#080402`, ICEBREAKER `#020508`, SAKURA `#080306`, MATRIX `#030704`, NEON `#020607`,
+  SODIUM `#080602`, GHOST `#060606`, NOMAD `#060504`. Surfaces unchanged and stay above it.
+- CHOPPER (noir) is the exception, inverted (`invertedSurfaces`): `bg` is its former panel slate
+  `#0E141A`; `surface.1` `#0E141A` → `#07090C`, `surface.2` `#151E25` → `#0A0E13` (darker panels
+  and list items).
+- Launcher sync: new `background` column (`none` / `theme` / `default` / `import`,
+  `BackgroundMode`) on `SharedTheme`; missing or unknown values fail closed to `default`.
+
+- Shadow (Oni3xe's device test): smooth, narrower and subtler. `shadowGlow()` / `hudPanel()` draw
+  bands of at most 1px with a continuous alpha (`shadowBands()`: edge alpha easing into the outer
+  alpha, then a quadratic fade), instead of 6 visible steps: a thin, bright edge with a narrow
+  fade. `themes.json` shadow: `alpha` 0.45 → 0.3, `radiusDp` 14 → 8, `edgeAlpha` 0.9 (unchanged),
+  `edgeWidthDp` 2 → 1.
+- Fix: Shadow off drew a faint glow in glass mode (the glass glow on panels). Panels now draw no
+  glow at all unless Shadow is on (`panelShadowBands()`, tested for every theme with glass on and
+  off). The glass glow stays for key elements (`chromekitGlassGlow`).
+- Glass no longer turns the panel frame grey: `hudPanel()` keeps `red.dim` (primary with Shadow)
+  in glass mode; `borderAlpha` is left for apps' own hairlines.
+
+- Double cut everywhere (Oni3xe): every element that had the single 6dp top-start chamfer (tabs,
+  menus, dialogs, toasts, the screen frame) gets the opposite bottom-end cut too, mirrored in RTL.
+  Sizes are unchanged: 6dp items stay 6dp, 10dp panels stay 10dp. `ChamferShape` (and so
+  `CybrShapes.chamfer`) and `hudScreenFrame()` now use the shared `opposingChamferOutline()`; new
+  `chamferCornerTriangles()` for drawn frames. No single-corner cut code is left in the kit.
+- `check_standard.py`: fails on hand-built paths (`moveTo` / `lineTo` with literal coordinates) in
+  the shared HUD files and in an app's optional `check.outlines` files (both profiles), so cut
+  outlines always come from the shared double-cut outline.
+- `render_palette_preview.py` draws tabs with the double cut. `themes.json` `panel.$comment`
+  updated (no palette change). `tokens.json` is untouched: its descriptive `top-start` wording for
+  the 6dp chamfer waits for the next design-vault tokens version.
+- Tests: the 6dp chamfer is the double cut in every theme; corner triangles; inset outlines.
+
 ## v1.2.0 (pending Oni3xe's palette approval; not tagged)
 
 - Tokens version 1.2.0 (`tokens.json`, `chromekit.version`, deprecated `cybrcore.version`); token

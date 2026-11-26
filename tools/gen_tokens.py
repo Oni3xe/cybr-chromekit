@@ -267,9 +267,44 @@ def resolve_themes(colors: dict, roles: dict) -> tuple:
     if doc.get("default") not in seen:
         raise SystemExit("themes.json: \"default\" must name a theme")
     first = doc["themes"][0]
-    if first["id"] != "red" or first.get("colors"):
-        raise SystemExit("themes.json: the first theme must be \"red\" with no overrides (identical to tokens.json)")
+    if first["id"] != "red" or set(first.get("colors", {})) - {"bg"}:
+        raise SystemExit("themes.json: the first theme must be \"red\" overriding only \"bg\" (otherwise identical to tokens.json)")
+    for th, pal in out:
+        lum = lambda k: sum(int(pal[k][i:i + 2], 16) for i in (1, 3, 5))
+        if th.get("invertedSurfaces"):
+            # CHOPPER: bg is the slate, panels and list items darker than it
+            if not (lum("surface.1") < lum("bg") and lum("surface.2") < lum("bg")):
+                raise SystemExit(f"themes.json: theme {th['id']} has invertedSurfaces, so its surfaces must be darker than bg")
+            continue
+        # bg: a very dark tint of the theme's main colour (3% of red), below surface.1
+        want = tuple(round(int(pal["red"][i:i + 2], 16) * BG_TINT) for i in (1, 3, 5))
+        got = tuple(int(pal["bg"][i:i + 2], 16) for i in (1, 3, 5))
+        if any(abs(a - b) > 1 for a, b in zip(want, got)):
+            raise SystemExit(f"themes.json: theme {th['id']} bg must be the {BG_TINT:.0%} tint of its red: #{''.join('%02X' % v for v in want)}")
     return doc, out
+
+
+BG_TINT = 0.03
+
+BLUR_STYLES = ("plain", "glass")
+BLUR_GLASS_FIELDS = ("saturation", "tone", "bloomThreshold", "bloomStrength", "edgeAlpha", "edgeWidthDp", "grainAlpha")
+
+
+def blur_style_lines(doc: dict) -> list:
+    """themes.json "blurStyle": the default style and the glass style's numbers, as constants."""
+    b = doc.get("blurStyle", {})
+    default = b.get("default", "glass")
+    if default not in BLUR_STYLES:
+        raise SystemExit(f"themes.json: blurStyle.default must be one of {BLUR_STYLES}")
+    g = b.get("glass", {})
+    lines = [f"    const val BLUR_STYLE_DEFAULT = \"{default}\""]
+    for key in BLUR_GLASS_FIELDS:
+        v = g.get(key)
+        if not isinstance(v, (int, float)) or v < 0:
+            raise SystemExit(f"themes.json: blurStyle.glass.{key} must be a number >= 0")
+        const = "BLUR_GLASS_" + "".join("_" + ch if ch.isupper() else ch.upper() for ch in key)
+        lines.append(f"    const val {const} = {num(v)}")
+    return lines
 
 
 def panel_chamfer(doc: dict) -> float:
@@ -291,7 +326,8 @@ def gen_themes(root: Path, cfg: dict, colors: dict, roles: dict, tool: str, pin:
          f"    const val DEFAULT_ID = \"{doc['default']}\"",
          f"    const val GLASS_DEFAULT = {str(bool(doc.get('glass', {}).get('enabled', False))).lower()}",
          f"    const val SHADOW_DEFAULT = {str(bool(doc.get('shadow', {}).get('enabled', False))).lower()}",
-         f"    const val PANEL_CHAMFER_DP = {num(panel_chamfer(doc))}", "",
+         f"    const val PANEL_CHAMFER_DP = {num(panel_chamfer(doc))}",
+         *blur_style_lines(doc), "",
          "    val ALL: List<ThemePalette> = listOf("]
     for th, pal in themes:
         k.append(f"        ThemePalette(")

@@ -13,6 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
@@ -89,6 +91,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.oni3xe.chromekit.theme.CybrTheme
+import com.oni3xe.chromekit.theme.chromekitGlassTint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,28 +100,23 @@ import kotlin.math.min
 /*
  * chromekit 1.1 shared Compose components (UI-Standard-v1.1 "States", "Action bar and menu",
  * "Components"): the press modifier with its latch, HudButton, HudActionBar with the [ ... ] overflow,
- * the menu panel, HudHeader, HudTab, HudTextField, HudRule, HudProgress and the chamfer shape.
+ * the menu panel, HudHeader, HudTab, HudTextField, HudRule, HudProgress and the chamfer shapes.
  * Every value comes from the generated Tokens. This is the only file allowed to use
  * `indication = null` (CI enforces it): the press visuals are drawn by the components themselves.
  */
 
 private val Px1 = Tokens.Shape.BORDER_DP.dp
 
-/** 45° chamfer on the top-start corner only ([cut] defaults to the 6dp token); every other corner square. */
-class ChamferShape(private val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
+/**
+ * The 6dp chamfer (tabs, menus, dialogs, toasts, the screen frame): straight 45° cuts of [cut] on two
+ * opposite corners, top-start and bottom-end, mirrored in RTL; the other corners square. Same
+ * outline as the panel cut ([OpposingChamferShape]), at the token size. chromekit has no
+ * single-corner cut.
+ */
+class ChamferShape(val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        val c = with(density) { cut.toPx() }.coerceAtMost(min(size.width, size.height) / 2)
-        val w = size.width
-        val h = size.height
-        val p = Path().apply {
-            if (layoutDirection == LayoutDirection.Ltr) {
-                moveTo(c, 0f); lineTo(w, 0f); lineTo(w, h); lineTo(0f, h); lineTo(0f, c)
-            } else {
-                moveTo(0f, 0f); lineTo(w - c, 0f); lineTo(w, c); lineTo(w, h); lineTo(0f, h)
-            }
-            close()
-        }
-        return Outline.Generic(p)
+        val c = with(density) { cut.toPx() }
+        return Outline.Generic(polygonPath(opposingChamferOutline(size.width, size.height, c, 0f, layoutDirection == LayoutDirection.Ltr)))
     }
 }
 
@@ -126,7 +124,7 @@ class ChamferShape(private val cut: Dp = Tokens.Shape.CHAMFER_DP.dp) : Shape {
  * 45° cuts on two opposite corners, top-start and bottom-end (the panel cut in every theme, like
  * the OpSync tab cut); the other two corners square. Straight lines, no rounding.
  */
-class OpposingChamferShape(private val cut: Dp) : Shape {
+class OpposingChamferShape(val cut: Dp) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val c = with(density) { cut.toPx() }
         val pts = opposingChamferOutline(size.width, size.height, c, 0f, layoutDirection == LayoutDirection.Ltr)
@@ -137,7 +135,8 @@ class OpposingChamferShape(private val cut: Dp) : Shape {
 /**
  * The outline of a [w] x [h] box with 45° cuts of [cut] on the top-start and bottom-end corners,
  * pushed outward by [inflate] (each edge moves out by [inflate]; a cut grows by inflate x (2 - √2) so
- * the cut line stays parallel). Returns x,y pairs clockwise; 4 points when the cut is 0. Pure math.
+ * the cut line stays parallel; a negative [inflate] insets it). Returns x,y pairs clockwise; 4 points
+ * when the cut is 0. Pure math. Every chromekit cut outline comes from here.
  */
 fun opposingChamferOutline(w: Float, h: Float, cut: Float, inflate: Float, ltr: Boolean): FloatArray {
     val c0 = cut.coerceIn(0f, min(w, h) / 2)
@@ -149,6 +148,17 @@ fun opposingChamferOutline(w: Float, h: Float, cut: Float, inflate: Float, ltr: 
     val c = c0 + inflate * (2f - kotlin.math.sqrt(2f))
     return if (ltr) floatArrayOf(l + c, t, r, t, r, b - c, r - c, b, l, b, l, t + c)
     else floatArrayOf(l, t, r - c, t, r, t + c, r, b, l + c, b, l, b - c)
+}
+
+/**
+ * The two corner triangles a [w] x [h] box loses to the top-start and bottom-end cuts of [cut]
+ * (mirrored in RTL), as x,y triples: what [hudScreenFrame] paints with `bg`. Pure math.
+ */
+fun chamferCornerTriangles(w: Float, h: Float, cut: Float, ltr: Boolean): List<FloatArray> {
+    val c = cut.coerceIn(0f, min(w, h) / 2)
+    if (c <= 0f) return emptyList()
+    return if (ltr) listOf(floatArrayOf(0f, 0f, c, 0f, 0f, c), floatArrayOf(w, h, w, h - c, w - c, h))
+    else listOf(floatArrayOf(w, 0f, w - c, 0f, w, c), floatArrayOf(0f, h, 0f, h - c, c, h))
 }
 
 private fun polygonPath(p: FloatArray) = Path().apply {
@@ -374,7 +384,7 @@ fun HudActionBar(actions: List<HudAction>, menu: HudMenuState, modifier: Modifie
 /**
  * The menu panel of [HudActionBar]'s `[ ... ]`, drawn over the screen. Place it last in a Box that
  * fills the window (root coordinates). Anchored above the button, end edges aligned; >= 160dp wide;
- * chamfer; bg fill; 1dp red frame; 48dp rows with full names in red caps; red.deep dividers;
+ * 6dp chamfer (top-start + bottom-end); bg fill; 1dp red frame; 48dp rows with full names in red caps; red.deep dividers;
  * full-row press. Closes on selection, outside tap or back; opens and closes in 4 discrete steps
  * (panelOpenMs / panelCloseMs), instantly under reduce motion.
  */
@@ -468,7 +478,7 @@ fun HudHeader(modifier: Modifier = Modifier, title: @Composable RowScope.() -> U
     }
 }
 
-/** Tab: 80 x 36 visual, 48 touch, chamfer, caps label without brackets; selected = cyan on cyan.deep. */
+/** Tab: 80 x 36 visual, 48 touch, 6dp chamfer (top-start + bottom-end), caps label without brackets; selected = cyan on cyan.deep. */
 @Composable
 fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val t = CybrTheme.tokens
@@ -489,81 +499,159 @@ fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifie
 }
 
 /**
- * Screen frame: 1dp red.dim with the 6dp top-start chamfer, drawn over the content (the corner is
- * filled with bg). Drawn, not clipped, so no path clip is redrawn on every frame.
+ * Screen frame: 1dp red.dim with the 6dp chamfer on the top-start and bottom-end corners (mirrored
+ * in RTL). Content is **clipped** to [ChamferShape], so the glass tint and children stay inside
+ * the cut. The cut corners are not filled with `bg` — that painted a solid ear past the frame
+ * line. The stroke is inset half a border so it stays inside the clip. With Shadow on
+ * (`CybrTheme.tokens.shadow`) the frame turns primary and the Shadow glow fades **inward** from
+ * the frame line ([screenFrameShadowBands]). Shadow off draws no glow.
+ *
+ * Draw the wallpaper / `chromekitGlassBackground` *behind* this modifier (edge to edge, including
+ * the status and navigation bars). Put the theme-`bg` tint ([chromekitGlassTint]) and the UI
+ * *inside* it. [HudWindow] composes that layout.
  */
 fun Modifier.hudScreenFrame(): Modifier = composed {
     val t = CybrTheme.tokens
-    drawWithContent {
+    clip(ChamferShape()).drawWithContent {
         drawContent()
         val b = Px1.toPx()
         val c = Tokens.Shape.CHAMFER_DP.dp.toPx()
         val ltr = layoutDirection == LayoutDirection.Ltr
-        val w = size.width
-        val h = size.height
-        val corner = Path().apply {
-            if (ltr) { moveTo(0f, 0f); lineTo(c, 0f); lineTo(0f, c) } else { moveTo(w, 0f); lineTo(w - c, 0f); lineTo(w, c) }
-            close()
-        }
-        drawPath(corner, t.colors.bg)
-        val frame = Path().apply {
-            val i = b / 2
-            if (ltr) {
-                moveTo(c, i); lineTo(w - i, i); lineTo(w - i, h - i); lineTo(i, h - i); lineTo(i, c)
-            } else {
-                moveTo(i, i); lineTo(w - c, i); lineTo(w - i, c); lineTo(w - i, h - i); lineTo(i, h - i)
+        val bands = screenFrameShadowBands(t, density, b)
+        if (bands.isNotEmpty()) {
+            clipPath(polygonPath(opposingChamferOutline(size.width, size.height, c, 0f, ltr))) {
+                drawBands(bands, t.colors.red, c, ltr)
             }
-            close()
         }
-        drawPath(frame, t.colors.redDim, style = Stroke(b))
+        // The stroke centre sits half a border inside the edge, so the stroke stays in the clip
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, -b / 2, ltr)),
+            if (t.shadow != null) t.colors.red else t.colors.redDim, style = Stroke(b))
     }
+}
+
+/**
+ * Edge-to-edge app window (MaxDoc-style): [backdrop] fills the whole window behind transparent
+ * system bars; [modifier] (safe-drawing insets, a margin) is applied to a chamfered
+ * [hudScreenFrame] over it. The frame clips its children and, when glass is on, draws the
+ * theme-`bg` tint ([chromekitGlassTint], alpha 0.65 blurred / 0.70 pre-31) inside the cut only —
+ * never as a solid bezel outside the frame. Draw wallpaper / `chromekitGlassBackground` (blur,
+ * no tint) in [backdrop].
+ */
+@Composable
+fun HudWindow(
+    modifier: Modifier = Modifier,
+    backdrop: @Composable BoxScope.() -> Unit = {},
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val t = CybrTheme.tokens
+    Box(Modifier.fillMaxSize()) {
+        backdrop()
+        Box(modifier.fillMaxSize().hudScreenFrame()) {
+            if (t.glass != null) Box(Modifier.matchParentSize().chromekitGlassTint(t))
+            content()
+        }
+    }
+}
+
+/**
+ * The screen frame's Shadow: the same smooth fade as [panelShadowBands], but inward, starting at the
+ * inner edge of the [border]-wide frame line: (offset, width, alpha) triples with negative offsets
+ * (inside the outline). Empty when Shadow is off. Pure math, in px.
+ */
+fun screenFrameShadowBands(tokens: com.oni3xe.chromekit.theme.CybrTokens, density: Float, border: Float): FloatArray {
+    val out = panelShadowBands(tokens, density)
+    for (i in out.indices step 3) out[i] = -(border + out[i])
+    return out
 }
 
 /**
  * Panel over other content: scrim fill, 1dp red.dim frame, straight 45° cuts on the top-start and
  * bottom-end corners (`CybrTheme.tokens.shapes.panel`, 10dp, mirrored in RTL). With glass on
- * (`CybrTheme.tokens.glass`), the fill is translucent, the frame a light hairline and a soft
- * primary-accent glow is drawn behind (strokes, never shadow()). With Shadow on
- * (`CybrTheme.tokens.shadow`), a subtle primary-colour glow radiates outward from the edge.
+ * (`CybrTheme.tokens.glass`) the fill is translucent; the frame keeps its colour. With Shadow on
+ * (`CybrTheme.tokens.shadow`) a soft primary-colour glow fades smoothly outward from the edge and
+ * the frame turns primary. Shadow off draws no glow at all, in glass mode too ([panelShadowBands]).
  */
 fun Modifier.hudPanel(): Modifier = composed {
     val t = CybrTheme.tokens
-    val g = t.glass
     val s = t.shadow
-    // Every theme: top-start + bottom-end 45° cuts; the band, glow and frame follow that outline.
+    // Every theme: top-start + bottom-end 45° cuts; the glow and frame follow that outline.
     val cut = t.shapes.panelCut
     val shape = t.shapes.panel
-    val outer = if (s == null) this else shadowGlow(t.colors.red, s.alpha, s.radiusDp.dp, s.edgeAlpha, s.edgeWidthDp.dp, cut = cut)
-    if (g == null) outer.clip(shape).background(t.colors.scrim).border(Px1, t.colors.redDim, shape)
-    else outer.glassGlow(t.colors.red, g.glowAlpha, g.glowRadiusDp.dp, cut = cut).clip(shape).background(t.colors.scrim)
-        // With Shadow on, a 1dp primary frame so the glow reads as coming from the edge.
-        .border(Px1, if (s != null) t.colors.red else t.colors.text.copy(alpha = g.borderAlpha), shape)
+    // Shadow off: no drawBehind at all, so nothing can be drawn outside the frame
+    val outer = if (s == null) this else drawBehind {
+        drawBands(panelShadowBands(t, density), t.colors.red, cut.toPx(), layoutDirection == LayoutDirection.Ltr)
+    }
+    val framed = outer.clip(shape).background(t.colors.scrim).border(Px1, if (s != null) t.colors.red else t.colors.redDim, shape)
+    // Glass blur style: a subtle light band just inside the frame, brightest at the top-start corner
+    val g = t.glassBlur
+    if (g == null || t.glass == null) framed else framed.drawWithContent {
+        drawContent()
+        val ltr = layoutDirection == LayoutDirection.Ltr
+        val w = g.edgeWidthDp * density
+        val inset = -(1f + w / 2f)
+        val brush = androidx.compose.ui.graphics.Brush.linearGradient(
+            listOf(t.colors.text.copy(alpha = g.edgeAlpha), t.colors.text.copy(alpha = 0f)),
+            start = androidx.compose.ui.geometry.Offset(if (ltr) 0f else size.width, 0f),
+            end = androidx.compose.ui.geometry.Offset(if (ltr) size.width else 0f, size.height),
+        )
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, cut.toPx(), inset, ltr)), brush, style = Stroke(w))
+    }
 }
 
 /**
- * Shadow: a bright band of [color] at [edgeAlpha] hugging the edge ([edgeWidth] wide, just outside
- * it), then [steps] strokes fading from [alpha] to 0 out to [radius]. Square, drawn behind.
+ * Shadow: [color] fading smoothly outward from the edge to [radius]: [edgeAlpha] at the edge,
+ * easing to [alpha] over [edgeWidth], then a quadratic fade to 0 ([shadowBands]: bands of at most
+ * 1px, so no visible steps). Follows the [cut] outline, drawn behind. [steps] is ignored (kept for
+ * source compatibility).
  */
-fun Modifier.shadowGlow(color: Color, alpha: Float, radius: Dp, edgeAlpha: Float, edgeWidth: Dp, steps: Int = 6, cut: Dp = 0.dp): Modifier =
-    if ((alpha <= 0f || radius <= 0.dp) && (edgeAlpha <= 0f || edgeWidth <= 0.dp)) this else drawBehind {
-        val e = edgeWidth.toPx()
-        val r = radius.toPx()
-        val c = cut.toPx()
-        val ltr = layoutDirection == LayoutDirection.Ltr
-        val band = (r - e).coerceAtLeast(0f) / steps
-        for (i in steps downTo 1) {
-            val off = e + band * (i - 1) + band / 2
-            drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, off, ltr)), color.copy(alpha = alpha * (1f - (i - 1f) / steps)), style = Stroke(band))
-        }
-        if (edgeAlpha > 0f && e > 0f) {
-            drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, e / 2, ltr)), color.copy(alpha = edgeAlpha), style = Stroke(e))
-        }
+@Suppress("UNUSED_PARAMETER")
+fun Modifier.shadowGlow(color: Color, alpha: Float, radius: Dp, edgeAlpha: Float, edgeWidth: Dp, steps: Int = 0, cut: Dp = 0.dp): Modifier =
+    if ((alpha <= 0f && edgeAlpha <= 0f) || radius <= 0.dp) this else drawBehind {
+        drawBands(shadowBands(radius.toPx(), edgeWidth.toPx(), alpha, edgeAlpha), color, cut.toPx(), layoutDirection == LayoutDirection.Ltr)
     }
 
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBands(bands: FloatArray, color: Color, cut: Float, ltr: Boolean) {
+    for (i in bands.indices step 3) {
+        drawPath(polygonPath(opposingChamferOutline(size.width, size.height, cut, bands[i], ltr)),
+            color.copy(alpha = bands[i + 2]), style = Stroke(bands[i + 1]))
+    }
+}
+
 /**
- * Soft glow radiating outward from an element's edge: 3 strokes of [color] fading out to [radius],
- * square, or following the top-start/bottom-end [cut] outline (Shadow panels). No-op at alpha 0.
- * Never shadow().
+ * The Shadow glow as strokes outside an edge: (offset of the stroke centre, stroke width, alpha)
+ * triples, outward from the edge. Every band is at most 1px wide and the alpha changes smoothly,
+ * so the glow reads as a gradient: [edgeAlpha] at the edge easing linearly to [alpha] at [edge],
+ * then a quadratic fade to 0 at [radius]. Bands under 1/255 alpha are dropped. Empty when there is
+ * nothing to draw. Pure math, in px.
+ */
+fun shadowBands(radius: Float, edge: Float, alpha: Float, edgeAlpha: Float): FloatArray {
+    if (radius <= 0f || (alpha <= 0f && edgeAlpha <= 0f)) return FloatArray(0)
+    val e = edge.coerceIn(0f, radius)
+    val n = kotlin.math.ceil(radius).toInt().coerceAtLeast(1)
+    val w = radius / n
+    val out = ArrayList<Float>(n * 3)
+    for (i in 0 until n) {
+        val d = w * (i + 0.5f)
+        val a = when {
+            d < e -> edgeAlpha + (alpha - edgeAlpha) * (d / e)
+            radius - e <= 0f -> 0f
+            else -> { val f = 1f - (d - e) / (radius - e); alpha * f * f }
+        }.coerceIn(0f, 1f)
+        if (a >= 1f / 255f) { out += d; out += w; out += a }
+    }
+    return out.toFloatArray()
+}
+
+/** [shadowBands] for a panel in [tokens] at [density]: empty whenever Shadow is off (glass or not). */
+fun panelShadowBands(tokens: com.oni3xe.chromekit.theme.CybrTokens, density: Float): FloatArray {
+    val s = tokens.shadow ?: return FloatArray(0)
+    return shadowBands(s.radiusDp * density, s.edgeWidthDp * density, s.alpha, s.edgeAlpha)
+}
+
+/**
+ * Soft glow radiating outward from a key element's edge (clock, active button; see
+ * `chromekitGlassGlow`): 3 strokes of [color] fading out to [radius], square, or following the
+ * top-start/bottom-end [cut] outline. Not used on panels. No-op at alpha 0. Never shadow().
  */
 fun Modifier.glassGlow(color: Color, alpha: Float, radius: Dp, cut: Dp = 0.dp): Modifier = if (alpha <= 0f || radius <= 0.dp) this else drawBehind {
     val r = radius.toPx()

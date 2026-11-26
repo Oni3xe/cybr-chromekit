@@ -57,7 +57,8 @@ def sc(*v):
 
 
 def chamfer(x0, y0, x1, y1, cut=6):
-    return [tuple(sc(x0 + cut, y0)), tuple(sc(x1, y0)), tuple(sc(x1, y1)), tuple(sc(x0, y1)), tuple(sc(x0, y0 + cut))]
+    """The 6dp chamfer (tabs, menus, dialogs, toasts): cuts on top-left and bottom-right, like the panel cut."""
+    return [tuple(sc(x, y)) for x, y in opposing(x0, y0, x1, y1, cut, 0)]
 
 
 def opposing(x0, y0, x1, y1, cut, inflate):

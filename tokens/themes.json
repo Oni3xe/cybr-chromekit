@@ -1,5 +1,5 @@
 {
-  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and must override nothing, so it stays identical to tokens.json. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'panel' sets the panel cut for every theme. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
+  "$comment": "chromekit theme palettes. Kit-owned (not the design-vault tokens file). Each theme overrides tokens.json colour keys; anything not listed comes from tokens.json. 'red' (KATANA) is the default and overrides only 'bg', so it is otherwise identical to tokens.json. 'bg' in every theme is a very dark tint of its main colour: 3% of 'red' per channel (checked by gen_tokens.py); the surfaces stay above it. Apps that want pure black use their own 'none' background, not a token. Exception: a theme with 'invertedSurfaces' (CHOPPER) breaks the tint rule on purpose: its bg is the dark slate its panels used to have, and its surfaces are darker than bg. 'label' is the code name shown in the picker, 'color' the colour family; ids never change. In other themes the red.* keys are the primary accent (commands, frames, clock, bars) and cyan.* the secondary accent (selected, readouts, labels). 'error' (the magenta in KATANA) is themed per theme and is the only token allowed to be white (#FFFFFF). warning, green (ok) and gold are fixed: the generator refuses theme overrides. 'panel' sets the panel cut for every theme. 'glass' and 'shadow' hold the defaults of the two independent toggles (both off unless the user turns them on); a theme may override any value.",
   "version": 1,
   "default": "red",
   "fixed": [
@@ -9,7 +9,7 @@
   ],
   "panel": {
     "chamferDp": 10,
-    "$comment": "Panel shape in every theme, Shadow on or off: straight 45\u00b0 cuts of chamferDp on two opposite corners, top-start and bottom-end (mirrored in RTL); the other corners square. No rounding. Tabs, menus and the screen frame keep the single 6dp top-start chamfer from tokens.json."
+    "$comment": "Panel shape in every theme, Shadow on or off: straight 45\u00b0 cuts of chamferDp on two opposite corners, top-start and bottom-end (mirrored in RTL); the other corners square. No rounding. Tabs, menus, dialogs, toasts and the screen frame use the same two cuts at the 6dp chamfer size (tokens.json shape.chamfer.sizeDp); chromekit has no single-corner cut."
   },
   "glass": {
     "enabled": false,
@@ -18,28 +18,42 @@
     "blurRadiusDp": 12,
     "glowAlpha": 0.3,
     "glowRadiusDp": 10,
-    "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. border: the theme's text colour at borderAlpha (subtle light hairline). blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha, drawn as strokes out to glowRadiusDp."
+    "$comment": "surfaceAlpha: panel fill (surface.1/surface.2/scrim) opacity. borderAlpha: kept for apps' own hairlines; panel frames keep the theme frame colour in glass mode. blurRadiusDp: background blur, API 31+ only (translucent without blur below). glow: the primary accent at glowAlpha out to glowRadiusDp, for key elements only (chromekitGlassGlow); panels get no glow unless Shadow is on."
   },
   "shadow": {
     "enabled": false,
     "alpha": 0.45,
-    "radiusDp": 14,
-    "edgeAlpha": 0.9,
-    "edgeWidthDp": 2,
-    "$comment": "Shadow: a neon glow in the theme's primary colour (red), brightest right at the panel border and fading outward. edgeAlpha/edgeWidthDp: the bright band hugging the edge; alpha/radiusDp: the outer fade, from alpha at the band to 0 at radiusDp. Independent of glass (with glass on, panels then get a 1dp primary frame). The band and glow follow the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
+    "radiusDp": 10,
+    "edgeAlpha": 0,
+    "edgeWidthDp": 0,
+    "$comment": "Shadow: a soft neon glow in the theme's primary colour, starting at alpha right at the panel border and fading smoothly outward to 0 at radiusDp (quadratic ease). No separate edge band: edgeAlpha/edgeWidthDp stay 0 (an app may set them for a bright edge that eases into alpha). Drawn as bands of at most 1px (shadowBands), so there are no visible steps. Independent of glass; Shadow off draws nothing at all. With Shadow on, panels get a 1dp primary frame. The glow follows the panel cut outline (see 'panel'). Drawn strokes, never shadow()."
+  },
+  "blurStyle": {
+    "default": "glass",
+    "glass": {
+      "saturation": 1.18,
+      "tone": 1.04,
+      "bloomThreshold": 0.68,
+      "bloomStrength": 0.32,
+      "edgeAlpha": 0.16,
+      "edgeWidthDp": 1.5,
+      "grainAlpha": 0.035
+    },
+    "$comment": "How glass panels' backdrop blur looks (only with glass on). 'plain': the blur alone, no grain. 'glass' (the default; unknown or missing values read as glass): the blur plus a saturation boost (saturation, 1 = none) and tone lift (tone, 1 = none), a soft bloom on bright areas (luminance above bloomThreshold, added at bloomStrength; API 33+ RuntimeShader only), a subtle light band along the panel edge (theme text colour at edgeAlpha over edgeWidthDp, fading from the top-start) and a fixed fine grain (grainAlpha). Below API 33 the bloom is dropped and the rest is drawn with a colour matrix and a grain tile (com.oni3xe.chromekit.views.GlassBlur)."
   },
   "themes": [
     {
       "id": "red",
       "label": "KATANA",
       "color": "Red",
-      "colors": {}
+      "colors": {"bg": "#080303"}
     },
     {
       "id": "purple",
       "label": "PHANTOM",
       "color": "Purple",
       "colors": {
+        "bg": "#050408",
         "red.bright": "#C9A6FF",
         "red": "#B07CFF",
         "red.dim": "#7B57B2",
@@ -58,6 +72,7 @@
       "label": "EMBER",
       "color": "Orange",
       "colors": {
+        "bg": "#080402",
         "red.bright": "#FFAF7B",
         "red": "#FF8A3D",
         "red.dim": "#B2612B",
@@ -76,6 +91,7 @@
       "label": "ICEBREAKER",
       "color": "Blue",
       "colors": {
+        "bg": "#020508",
         "red.bright": "#86C0FF",
         "red": "#4DA3FF",
         "red.dim": "#3672B2",
@@ -94,6 +110,7 @@
       "label": "SAKURA",
       "color": "Pink",
       "colors": {
+        "bg": "#080306",
         "red.bright": "#FF92CF",
         "red": "#FF5FB8",
         "red.dim": "#B24281",
@@ -112,6 +129,7 @@
       "label": "MATRIX",
       "color": "Green",
       "colors": {
+        "bg": "#030704",
         "red.bright": "#8DECAF",
         "red": "#57E389",
         "red.dim": "#3D9F60",
@@ -130,6 +148,7 @@
       "label": "NEON",
       "color": "Cyan",
       "colors": {
+        "bg": "#020607",
         "red.bright": "#74E3EE",
         "red": "#33D6E6",
         "red.dim": "#2496A1",
@@ -148,6 +167,7 @@
       "label": "SODIUM",
       "color": "Amber",
       "colors": {
+        "bg": "#080602",
         "red.bright": "#FFCF74",
         "red": "#FFB833",
         "red.dim": "#B28124",
@@ -166,6 +186,7 @@
       "label": "GHOST",
       "color": "Monochrome",
       "colors": {
+        "bg": "#060606",
         "red.bright": "#DADADA",
         "red": "#C8C8C8",
         "red.dim": "#8C8C8C",
@@ -193,7 +214,7 @@
         "cyan": "#8FB3A8",
         "cyan.dim": "#5D746D",
         "cyan.deep": "#1F2725",
-        "bg": "#0E0B09",
+        "bg": "#060504",
         "surface.1": "#17120F",
         "surface.2": "#211A16",
         "text": "#A89F96",
@@ -205,11 +226,12 @@
     {
       "id": "noir",
       "label": "CHOPPER",
+      "invertedSurfaces": true,
       "color": "Noir",
       "colors": {
-        "bg": "#07090C",
-        "surface.1": "#0E141A",
-        "surface.2": "#151E25",
+        "bg": "#0E141A",
+        "surface.1": "#07090C",
+        "surface.2": "#0A0E13",
         "red.bright": "#EE3B3E",
         "red": "#C8383C",
         "red.dim": "#84383A",

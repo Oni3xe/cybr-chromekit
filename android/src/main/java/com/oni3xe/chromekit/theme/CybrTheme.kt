@@ -104,15 +104,17 @@ data class CybrSpacing(val s: Dp, val m: Dp, val l: Dp, val xl: Dp, val xxl: Dp,
 }
 
 /**
- * Square everywhere; one 6dp top-start chamfer on menus, tabs and the screen frame. Panels
- * (`hudPanel`) use [panel]: straight 45° cuts of [panelCut] (10dp, tokens/themes.json "panel") on
- * the top-start and bottom-end corners, mirrored in RTL. Never rounded.
+ * Square everywhere, or straight 45° cuts on two opposite corners, top-start and bottom-end
+ * (mirrored in RTL): [chamfer] (6dp) on tabs, menus, dialogs, toasts and the screen frame; [panel]
+ * ([panelCut], 10dp, tokens/themes.json "panel") on panels (`hudPanel`). Never rounded, never a
+ * single cut corner.
  */
 @Immutable
 data class CybrShapes(
     /** Material needs a CornerBasedShape; 0dp radius is a rectangle. */
     val default: CornerBasedShape,
     val block: Shape,
+    /** 6dp top-start + bottom-end cuts ([com.oni3xe.chromekit.ChamferShape]). */
     val chamfer: Shape,
     /** The panel cut size; see [panel]. */
     val panelCut: Dp = GeneratedThemes.PANEL_CHAMFER_DP.dp,
@@ -131,6 +133,11 @@ data class CybrTokens(
     val glass: GlassStyle? = null,
     /** Non-null when Shadow is on: a subtle primary-colour glow outward from each panel edge. */
     val shadow: ShadowStyle? = null,
+    /**
+     * Non-null when glass is on with the "glass" blur style: the backdrop gets saturation/tone,
+     * bloom and grain ([chromekitGlassBackground]) and panels an edge light band ([com.oni3xe.chromekit.hudPanel]).
+     */
+    val glassBlur: com.oni3xe.chromekit.views.GlassBlurSpec? = null,
 )
 
 val Rajdhani = FontFamily(

@@ -27,6 +27,9 @@ android {
     // Regular/Medium/SemiBold/Bold and JetBrains Mono Regular/Bold; Rajdhani Light is Views-only.
     sourceSets["main"].res.srcDir(file("../fonts/res-core"))
     sourceSets["main"].res.srcDir(file("../fonts/res-mono-bold"))
+    // Framework-only code shared with Views apps (they add this folder as a source dir): no Compose here.
+    sourceSets["main"].java.srcDir(file("src/views/java"))
+    sourceSets["main"].kotlin.srcDir(file("src/views/java"))
 }
 
 dependencies {
