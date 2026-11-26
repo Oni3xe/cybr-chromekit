@@ -131,7 +131,7 @@ What the module provides:
 - `Hud.kt` (`com.oni3xe.chromekit`):
   - the press modifier (`hudPress`, `HudPress`, `PressPhase`): 140 ms latch, step-off, `KEYBOARD_TAP` haptic, glow drawn as strokes;
   - `HudButton`, `HudTab`, `HudActionBar` with the `[ ... ]` menu (`HudMenuHost`, `HudMenuState`);
-  - `HudHeader`, `hudScreenFrame`, `hudPanel`, `HudRule`, `HudTextField` (block cursor), `HudProgress`, `HudEmptyState`;
+  - `HudHeader`, `hudScreenFrame`, `HudWindow`, `hudPanel`, `HudRule`, `HudTextField` (block cursor), `HudProgress`, `HudEmptyState`;
   - `ChamferShape`, `LocalReduceMotion` and `systemReduceMotion`.
 - `theme/CybrTheme.kt` (`com.oni3xe.chromekit.theme`): `CybrTheme`, `CybrTokens` and its colours, type, spacing and shapes, `ChromekitTokens` (deprecated alias: `CybrcoreTokens`), `Rajdhani`, `JetBrainsMono`.
 - `Tokens.kt` (`com.oni3xe.chromekit`): the kit's own generated tokens; apps keep theirs.
@@ -272,8 +272,10 @@ are square. chromekit has no single-corner cut. Two sizes, unchanged:
 | 10dp (`themes.json` `panel.chamferDp`, `tokens.json` `shape.panelCut`) | panels (`hudPanel()`) | `CybrTheme.tokens.shapes.panel`, `OpposingChamferShape` |
 
 Both are built from one outline, `opposingChamferOutline()` (pure math, also used for the Shadow
-band and glass glow, inflated so the cut stays parallel); `chamferCornerTriangles()` gives the two
-cut corners for drawn frames. Views apps build the same outline from their own corners array.
+band and glass glow, inflated so the cut stays parallel). `hudScreenFrame()` clips content to
+`ChamferShape` (use `HudWindow` to draw a bezel outside the cut, and put the wallpaper/glass
+backdrop inside the frame). `chamferCornerTriangles()` is the geometry of the two cut corners,
+which sit outside the outline. Views apps build the same outline from their own corners array.
 `check_standard.py` fails on curves (`cubicTo`, `arcTo`, `addRoundRect`, ...) in the shared HUD
 files, and on hand-built paths (`moveTo` / `lineTo` with literal coordinates) in the shared HUD files
 and an app's `check.outlines` files, so every cut stays straight and paired.
@@ -293,7 +295,8 @@ follows the panel cut outline; `CybrTheme.tokens.shadow` is non-null when on.
 
 With glass on, `CybrTheme.tokens.glass` is non-null and the surfaces are translucent; `hudPanel()`
 keeps its frame colour (`red.dim`, primary with Shadow) and draws no glow, and the app blurs its
-own background layer with `Modifier.chromekitGlassBackground(tokens)`.
+own background layer with `Modifier.chromekitGlassBackground(tokens)` (theme-`bg` tint at alpha
+0.65 when blurred, 0.70 on the pre-31 fallback; draw this *inside* `hudScreenFrame()`).
 `Modifier.chromekitGlassGlow(tokens)` adds the glass glow to a key element (clock, active button).
 No new dependency.
 

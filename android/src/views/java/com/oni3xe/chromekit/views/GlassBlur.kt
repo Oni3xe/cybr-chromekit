@@ -69,6 +69,20 @@ object GlassBlurMath {
     }
 }
 
+/**
+ * Theme-`bg` colour overlay drawn over the (possibly blurred) wallpaper by
+ * `Modifier.chromekitGlassBackground`. There was previously no tint (alpha 0): the raw wallpaper
+ * sat behind the UI. These alphas keep the blur visible while making text readable.
+ */
+object GlassBackdropTint {
+    /** API 31+ when a blur is applied: a step up that still shows the blurred wallpaper. */
+    const val ALPHA_BLURRED = 0.65f
+    /** Pre-API 31 (no blur): slightly stronger so an unblurred wallpaper does not overpower text. */
+    const val ALPHA_FALLBACK = 0.70f
+
+    fun alpha(blurred: Boolean): Float = if (blurred) ALPHA_BLURRED else ALPHA_FALLBACK
+}
+
 object GlassBlur {
     /** Grain tile edge, px. Fine grain: one pixel per grain. */
     const val GRAIN_TILE_PX = 64

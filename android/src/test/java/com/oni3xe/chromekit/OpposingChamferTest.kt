@@ -2,6 +2,7 @@ package com.oni3xe.chromekit
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
 import kotlin.math.sqrt
@@ -66,5 +67,24 @@ class OpposingChamferTest {
         val c = Tokens.Shape.CHAMFER_DP
         val p = opposingChamferOutline(80f, 36f, c, 0f, true)
         assertArrayEquals(floatArrayOf(c, 0f, 80f, 0f, 80f, 36f - c, 80f - c, 36f, 0f, 36f, 0f, c), p, eps)
+    }
+
+    /**
+     * The top-start / bottom-end triangles sit *outside* the chamfered outline. Filling them with
+     * `bg` (the old hudScreenFrame) painted a solid ear past the frame line. The frame now clips
+     * to [ChamferShape] instead and leaves these corners to the bezel behind the window.
+     */
+    @Test fun cutCornerInteriorIsOutsideTheFrame() {
+        val cut = 6f
+        val tri = chamferCornerTriangles(100f, 50f, cut, true)[0]
+        val cx = (tri[0] + tri[2] + tri[4]) / 3f
+        val cy = (tri[1] + tri[3] + tri[5]) / 3f
+        assertTrue(cx + cy < cut)
+        val p = opposingChamferOutline(100f, 50f, cut, 0f, true)
+        // Cut line is (cut, 0) -> (0, cut); a point with x+y < cut is on the outside of that line.
+        assertEquals(cut, p[0], eps)
+        assertEquals(0f, p[1], eps)
+        assertEquals(0f, p[10], eps)
+        assertEquals(cut, p[11], eps)
     }
 }

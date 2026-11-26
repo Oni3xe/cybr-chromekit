@@ -13,6 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -498,28 +499,48 @@ fun HudTab(label: String, fullName: String, selected: Boolean, modifier: Modifie
 
 /**
  * Screen frame: 1dp red.dim with the 6dp chamfer on the top-start and bottom-end corners (mirrored
- * in RTL), drawn over the content (the cut corners are filled with bg). Drawn, not clipped, so no
- * path clip is redrawn on every frame. With Shadow on (`CybrTheme.tokens.shadow`) the frame turns
- * primary and the Shadow glow fades **inward** from the frame line (a full-screen frame has no room
- * outside it; [screenFrameShadowBands]). Shadow off draws no glow.
+ * in RTL). Content is **clipped** to [ChamferShape], so wallpaper, glass and children stay inside
+ * the cut. The cut corners are not filled with `bg` — that painted a solid ear past the frame
+ * line. The stroke is inset half a border so it stays inside the clip. With Shadow on
+ * (`CybrTheme.tokens.shadow`) the frame turns primary and the Shadow glow fades **inward** from
+ * the frame line ([screenFrameShadowBands]). Shadow off draws no glow.
+ *
+ * Put the app's backdrop (wallpaper / `chromekitGlassBackground`) *inside* this modifier, not as a
+ * sibling behind it; the area outside the frame then shows the parent (typically [HudWindow]).
  */
 fun Modifier.hudScreenFrame(): Modifier = composed {
     val t = CybrTheme.tokens
-    drawWithContent {
+    clip(ChamferShape()).drawWithContent {
         drawContent()
         val b = Px1.toPx()
         val c = Tokens.Shape.CHAMFER_DP.dp.toPx()
         val ltr = layoutDirection == LayoutDirection.Ltr
-        chamferCornerTriangles(size.width, size.height, c, ltr).forEach { drawPath(polygonPath(it), t.colors.bg) }
         val bands = screenFrameShadowBands(t, density, b)
         if (bands.isNotEmpty()) {
             clipPath(polygonPath(opposingChamferOutline(size.width, size.height, c, 0f, ltr))) {
                 drawBands(bands, t.colors.red, c, ltr)
             }
         }
-        // The stroke centre sits half a border inside the edge
+        // The stroke centre sits half a border inside the edge, so the stroke stays in the clip
         drawPath(polygonPath(opposingChamferOutline(size.width, size.height, c, -b / 2, ltr)),
             if (t.shadow != null) t.colors.red else t.colors.redDim, style = Stroke(b))
+    }
+}
+
+/**
+ * The app window: an opaque [outside] bezel (default pure black, [Tokens.Color.BG]) with a
+ * chamfered [hudScreenFrame] over it. Draw the wallpaper/glass backdrop first inside [content],
+ * then the UI; both stay clipped to the cut. [modifier] is applied to the framed inner box
+ * (safe-drawing insets, a margin around the frame).
+ */
+@Composable
+fun HudWindow(
+    modifier: Modifier = Modifier,
+    outside: Color = Color(Tokens.Color.BG),
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(Modifier.fillMaxSize().background(outside)) {
+        Box(modifier.fillMaxSize().hudScreenFrame(), content = content)
     }
 }
 

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Screen frame clip: `hudScreenFrame()` now clips content to `ChamferShape` instead of painting
+  the cut-corner triangles with `bg`. Those triangles sit outside the chamfered outline, so the
+  fill showed as a solid ear past the frame line (cybr-alarm device shot). New `HudWindow`
+  composable: an opaque bezel (`Tokens.Color.BG` black by default) with the clipped frame over it;
+  draw the wallpaper/glass backdrop *inside* the window, not as a sibling behind it.
+- Glass backdrop tint: `chromekitGlassBackground` draws the theme `bg` colour over the (possibly
+  blurred) wallpaper. Previously there was no tint (alpha 0). API 31+ with blur: alpha `0.65`;
+  pre-31 fallback (no blur): alpha `0.70` (`GlassBackdropTint`). Blur, bloom and grain unchanged.
 - Theme sync: a `default` background row with a valid `wallpaper` URI (the launcher's bundled theme
   wallpaper, served through the same validated, trust-checked URI) parses to `BackgroundMode.IMPORT`
   (`LauncherThemeContract.effectiveBackground`), so apps that draw the shared image for IMPORT now
